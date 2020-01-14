@@ -1,9 +1,6 @@
 %{
 #include "parser.tab.h"
-#include <stdlib.h>
-#include <cstdio>
 #include <string.h>
-
 %}
 %option debug
 %option noyywrap
@@ -15,7 +12,7 @@ ID [_a-z]+
 						return PIDENTIFIER	;			}
 {num} 				{	yylval.ival = atoi(yytext);
 						return NUM;						}
-BEGIN				{ 	return BGN;						}						
+"BEGIN"				{ 	return BGN;						}						
 DECLARE				{	return DECLARE;					}
 END					{	return END;						}
 WRITE 				{	return WRITE;					}

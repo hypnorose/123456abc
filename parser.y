@@ -12,25 +12,56 @@
 %token <ival> NUM
 %token <sval> PIDENTIFIER 
 %{
-	#include <stdio.h>
-	#include <iostream>
-	#define YYDEBUG 1
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include <cstdio>
+#include <string.h>
+#define YYDEBUG 1
+#define MAXSIZE 1000
+
+	struct cell{
+
+		char * name;
+	};
+
+	struct cmd{
+		char * oper;
+		int arg;
+	};
+	cell memory[MAXSIZE];
+
+
+
+	
+
+	
+	int code_offset=0;
+	int data_offset = 0;
+	void install(char * temps){
+		printf("%s",temps);
+		memory[data_offset].name = strdup(temps);
+		data_offset++;
+	}
+	
+
 	using namespace std;
 	extern int yylex();
 	extern int yyparse();
-
+	
 	extern FILE *yyin;
+
 	void yyerror(const char *s);
 %}
 
 %%
-program: 		DECLARE declarations BGN commands END {printf("finished+");}
-|		 		BGN commands END {printf("finsihed");}
+program: 		DECLARE declarations BGN commands END {printf("asdsa");}
+|		 		BGN commands END {printf("sdad");}
 ;
 
-declarations:   declarations ',' PIDENTIFIER
+declarations:   declarations ',' PIDENTIFIER					{install($3);}
 |				declarations ',' PIDENTIFIER '(' NUM ':' NUM ')'
-|				PIDENTIFIER										{printf("d");}
+|				PIDENTIFIER										{install($1);}
 |				PIDENTIFIER '(' NUM ':' NUM ')'
 ;
 commands:		commands command
@@ -71,7 +102,7 @@ identifier:		PIDENTIFIER {printf("pidd");}
 
 int main( int argc, char *argv[] ){ 
 	FILE *yyin;
-	yyin = fopen( argv[0], "r" );
+	//yyin = fopen( argv[0], "r" );
 	yyparse();
 }
 void yyerror (const char *s) 

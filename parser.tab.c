@@ -158,19 +158,50 @@ typedef union YYSTYPE
 /* Line 264 of yacc.c  */
 #line 14 "parser.y"
 
-	#include <stdio.h>
-	#include <iostream>
-	#define YYDEBUG 1
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include <cstdio>
+#include <string.h>
+#define YYDEBUG 1
+#define MAXSIZE 1000
+
+	struct cell{
+
+		char * name;
+	};
+
+	struct cmd{
+		char * oper;
+		int arg;
+	};
+	cell memory[MAXSIZE];
+
+
+
+	
+
+	
+	int code_offset=0;
+	int data_offset = 0;
+	void install(char * temps){
+		printf("%s",temps);
+		memory[data_offset].name = strdup(temps);
+		data_offset++;
+	}
+	
+
 	using namespace std;
 	extern int yylex();
 	extern int yyparse();
-
+	
 	extern FILE *yyin;
+
 	void yyerror(const char *s);
 
 
 /* Line 264 of yacc.c  */
-#line 174 "parser.tab.c"
+#line 205 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -474,10 +505,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    27,    27,    28,    31,    32,    33,    34,    36,    37,
-      39,    40,    41,    42,    43,    44,    45,    46,    47,    49,
-      50,    51,    52,    53,    54,    56,    57,    58,    59,    60,
-      61,    63,    64,    66,    67,    68
+       0,    58,    58,    59,    62,    63,    64,    65,    67,    68,
+      70,    71,    72,    73,    74,    75,    76,    77,    78,    80,
+      81,    82,    83,    84,    85,    87,    88,    89,    90,    91,
+      92,    94,    95,    97,    98,    99
 };
 #endif
 
@@ -1454,49 +1485,56 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 27 "parser.y"
-    {printf("finished+");;}
+#line 58 "parser.y"
+    {printf("asdsa");;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 28 "parser.y"
-    {printf("finsihed");;}
+#line 59 "parser.y"
+    {printf("sdad");;}
+    break;
+
+  case 4:
+
+/* Line 1455 of yacc.c  */
+#line 62 "parser.y"
+    {install((yyvsp[(3) - (3)].sval));;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 33 "parser.y"
-    {printf("d");;}
+#line 64 "parser.y"
+    {install((yyvsp[(1) - (1)].sval));;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 47 "parser.y"
+#line 78 "parser.y"
     {printf("writed");;}
     break;
 
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 63 "parser.y"
+#line 94 "parser.y"
     {printf("liczba");;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 66 "parser.y"
+#line 97 "parser.y"
     {printf("pidd");;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1500 "parser.tab.c"
+#line 1538 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1708,12 +1746,12 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 70 "parser.y"
+#line 101 "parser.y"
 
 
 int main( int argc, char *argv[] ){ 
 	FILE *yyin;
-	yyin = fopen( argv[0], "r" );
+	//yyin = fopen( argv[0], "r" );
 	yyparse();
 }
 void yyerror (const char *s) 
