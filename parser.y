@@ -1,9 +1,16 @@
 %start program
-%token PIDENTIFIER NUM
+%union{
+	char * sval;
+	int ival;
+}
+
 %token ASSIGN IF THEN ELSE ENDIF 
 %token FOR  TO DOWNTO  ENDFOR READ  WRITE  WHILE DO  ENDDO FROM
-%token DECLARE END
-
+%token DECLARE END BGN
+%token PLUS MINUS TIMES DIV MOD
+%token EQ NEQ LE GE LEQ GEQ 
+%token <ival> NUM
+%token <sval> PIDENTIFIER 
 %{
 	#include <stdio.h>
 	#include <iostream>
@@ -17,13 +24,13 @@
 %}
 
 %%
-program: 		DECLARE declarations "BEGIN" commands END
-|		 		"BEGIN" commands END
+program: 		DECLARE declarations BGN commands END {printf("finished+");}
+|		 		BGN commands END {printf("finsihed");}
 ;
 
 declarations:   declarations ',' PIDENTIFIER
 |				declarations ',' PIDENTIFIER '(' NUM ':' NUM ')'
-|				PIDENTIFIER
+|				PIDENTIFIER										{printf("d");}
 |				PIDENTIFIER '(' NUM ':' NUM ')'
 ;
 commands:		commands command
@@ -37,7 +44,7 @@ command:		identifier ASSIGN expression ';'
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
 |				FOR PIDENTIFIER FROM value TO value DOWNTO value commands ENDFOR
 |				READ identifier ';'
-|				WRITE value  ';'
+|				WRITE value  ';' {printf("writed");}
 ;
 expression:		value
 |				value "PLUS" value
@@ -53,13 +60,13 @@ condition:		value "EQ" value
 |				value "LEQ" value
 |				value "GEQ" value
 ;
-value:			NUM
+value:			NUM {printf("liczba");}
 |				identifier
-
-identifier:		PIDENTIFIER
+;
+identifier:		PIDENTIFIER {printf("pidd");}
 |				PIDENTIFIER'('PIDENTIFIER')'
 |				PIDENTIFIER'('NUM')'
-
+;
 %%
 
 int main( int argc, char *argv[] ){ 
