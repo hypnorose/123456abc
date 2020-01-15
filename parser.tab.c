@@ -1514,7 +1514,7 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 78 "parser.y"
-    {printf("writed");;}
+    {printf("xxx");;}
     break;
 
   case 31:
