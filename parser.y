@@ -1,4 +1,6 @@
 %start program
+
+
 %union{
 	char * sval;
 	int ival;
@@ -11,14 +13,19 @@
 %token EQ NEQ LE GE LEQ GEQ 
 %token <ival> NUM
 %token <sval> PIDENTIFIER 
-%token <sval> IDENTIFIER 
+%type <ival> identifier
+
+%left PLUS MINUS
+%left TIMES DIV MOD
+
 %{
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
 #include <cstdio>
 #include <string.h>
-#define YYDEBUG 1
+#undef YYDEBUG
+#define YYDEBUG 0
 #define EAX 0  // rejestr na który działaja operacje sub add itp
 #define EBX 1
 #define ECX 2
@@ -32,14 +39,14 @@
 #define STACK_OVERFLOW 300
 #define DATA_START 301
 
+void yyerror(const char *s);
 	int ebp = 100;
 	int esp = ebp;
-	
-	struct cell{
-		int * address;
+		
+	struct cell {
+		int address;
 		char * name;
 	};
-
 	struct cmd{
 		char * oper;
 		int arg;
@@ -51,27 +58,15 @@
 
 
 
-	void gen_code(char * code,int arg){
-		printf("%s %d\n\n\n\n",code,arg);
-		output[output_offset] = strdup(code);
-		output[output_offset++] = args;
+	void gen_code(const char * code,int arg){
+		printf("%s %d\n",code,arg);
+		output[output_offset].oper = strdup(code);
+		output[output_offset++].arg = arg;
 	}
 
-	void gen_code(char * code){
-		printf("%s\n\n\n\n",code);
-		output[output_offset++] = strdup(code);
-	}
-
-	void push_number(int number){
-		gen_code("LOAD",ESP);
-		gen_code("INC");
-		gen_code("STORE",ESP);
-	
-		
-		numberToP0(number);
-		// teraz w p0 jest number
-		gen_code("STOREI",ESP);
-
+	void gen_code(const char * code){
+		printf("%s\n",code);
+		output[output_offset++].oper = strdup(code);
 	}
 	void numberToP0(int number){
 		gen_code("SUB",EAX);
@@ -94,24 +89,36 @@
 					number--;
 				}
 		}
-		for(int i=oper_number-1;i>=0;i++){
+		for(int i=oper_number-1;i>=0;i--){
 			if(opers[i]==0){
 				gen_code("INC");
 			}
 			else gen_code("SHIFT", ONE);
 		}
 	}
+	void push_number(int number){
+		gen_code("LOAD",ESP);
+		gen_code("INC");
+		gen_code("STORE",ESP);
+	
+		
+		numberToP0(number);
+		// teraz w p0 jest number
+		gen_code("STOREI",ESP);
+
+	}
+
 
 	int findVar(char * var_name){
 		for(int i=0;i<data_offset;i++){
-			if(strcmp(var_name,memory[i])==0)return memory[i].address;
+			if(strcmp(var_name,memory[i].name)==0)return memory[i].address;
 		}
 		yyerror("Variable not found");
+		return -1;
 	}
-	void assign(char * var_name){
+	void assign(int var_addr){
 		gen_code("LOADI",ESP);
-		int adr = findVar(char * var_name);
-		gen_code("STORE",adr);
+		gen_code("STORE",var_addr);
 
 	}
 	void pop(char * var_name){
@@ -147,12 +154,12 @@
 	
 	extern FILE *yyin;
 
-	void yyerror(const char *s);
+	
 %}
 
 %%
-program: 		DECLARE declarations BGN commands END {printf("XXXXXX");}
-|		 		BGN commands END {printf("sdad");}
+program: 		DECLARE declarations BGN commands END {printf("\nkoniecprogramu\n");}
+|		 		BGN commands END {printf("\nkoniecprogramu\n");}
 ;
 
 declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
@@ -187,19 +194,18 @@ condition:		value "EQ" value
 |				value "LEQ" value
 |				value "GEQ" value
 ;
-value:			NUM {}
+value:			NUM 							{push_number(yylval.ival);}
 |				identifier
 ;
-identifier:		PIDENTIFIER {$$ = $1}
-|				PIDENTIFIER'('PIDENTIFIER')'
-|				PIDENTIFIER'('NUM')'
+identifier:		PIDENTIFIER 					{$$ = findVar($1);}
+|				PIDENTIFIER'('PIDENTIFIER')'	{$$ = 0;}
+|				PIDENTIFIER'('NUM')'			{$$ = 0;}
 ;
 %%
 
 int main( int argc, char *argv[] ){ 
 	FILE *yyin;
 	//yyin = fopen( argv[0], "r" );
-	printf("test");
 	setup();
 	yyparse();
 }

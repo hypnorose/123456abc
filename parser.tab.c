@@ -137,7 +137,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 2 "parser.y"
+#line 4 "parser.y"
 
 	char * sval;
 	int ival;
@@ -156,37 +156,133 @@ typedef union YYSTYPE
 /* Copy the second part of user declarations.  */
 
 /* Line 264 of yacc.c  */
-#line 14 "parser.y"
+#line 21 "parser.y"
 
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
 #include <cstdio>
 #include <string.h>
-#define YYDEBUG 1
-#define MAXSIZE 1000
+#undef YYDEBUG
+#define YYDEBUG 0
+#define EAX 0  // rejestr na który działaja operacje sub add itp
+#define EBX 1
+#define ECX 2
+#define EDX 3
+#define ESI 4
+#define EDI 5
+#define ONE 6
 
-	struct cell{
+#define ESP 11
+#define EBP 100
+#define STACK_OVERFLOW 300
+#define DATA_START 301
 
+void yyerror(const char *s);
+	int ebp = 100;
+	int esp = ebp;
+		
+	struct cell {
+		int address;
 		char * name;
 	};
-
 	struct cmd{
 		char * oper;
 		int arg;
 	};
-	cell memory[MAXSIZE];
-
-
-
-	
-
-	
-	int code_offset=0;
+	cell memory[999];
+	cmd output[999];
+	int output_offset=0;
 	int data_offset = 0;
-	void install(char * temps){
+
+
+
+	void gen_code(const char * code,int arg){
+		printf("%s %d\n",code,arg);
+		output[output_offset].oper = strdup(code);
+		output[output_offset++].arg = arg;
+	}
+
+	void gen_code(const char * code){
+		printf("%s\n",code);
+		output[output_offset++].oper = strdup(code);
+	}
+	void numberToP0(int number){
+		gen_code("SUB",EAX);
+		if(number > 0)
+			gen_code("INC");
+		else if (number < 0){
+			number=-number;
+			gen_code("DEC");
+		}
+
+		bool opers[100];// 0 - (+1); 1 - (*2)
+		int oper_number = 0;
+			while(number>1){
+				if(number%2==0){
+					opers[oper_number++]=1;
+					number/=2;
+				}
+				else {
+					opers[oper_number++]=0;
+					number--;
+				}
+		}
+		for(int i=oper_number-1;i>=0;i--){
+			if(opers[i]==0){
+				gen_code("INC");
+			}
+			else gen_code("SHIFT", ONE);
+		}
+	}
+	void push_number(int number){
+		gen_code("LOAD",ESP);
+		gen_code("INC");
+		gen_code("STORE",ESP);
+	
+		
+		numberToP0(number);
+		// teraz w p0 jest number
+		gen_code("STOREI",ESP);
+
+	}
+
+
+	int findVar(char * var_name){
+		for(int i=0;i<data_offset;i++){
+			if(strcmp(var_name,memory[i].name)==0)return memory[i].address;
+		}
+		yyerror("Variable not found");
+		return -1;
+	}
+	void assign(int var_addr){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",var_addr);
+
+	}
+	void pop(char * var_name){
+
+	}
+
+	void setup(){
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("STORE",ONE);
+		numberToP0(EBP);
+		gen_code("STORE",ESP);
+
+	}
+	
+
+
+	
+
+	
+	
+	void make_variable(char * temps){
 		printf("%s",temps);
 		memory[data_offset].name = strdup(temps);
+		memory[data_offset].address = data_offset+DATA_START;
 		data_offset++;
 	}
 	
@@ -197,11 +293,11 @@ typedef union YYSTYPE
 	
 	extern FILE *yyin;
 
-	void yyerror(const char *s);
+	
 
 
 /* Line 264 of yacc.c  */
-#line 205 "parser.tab.c"
+#line 301 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -505,10 +601,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    58,    58,    59,    62,    63,    64,    65,    67,    68,
-      70,    71,    72,    73,    74,    75,    76,    77,    78,    80,
-      81,    82,    83,    84,    85,    87,    88,    89,    90,    91,
-      92,    94,    95,    97,    98,    99
+       0,   161,   161,   162,   165,   166,   167,   168,   170,   171,
+     173,   174,   175,   176,   177,   178,   179,   180,   181,   183,
+     184,   185,   186,   187,   188,   190,   191,   192,   193,   194,
+     195,   197,   198,   200,   201,   202
 };
 #endif
 
@@ -1485,56 +1581,77 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 58 "parser.y"
-    {printf("asdsa");;}
+#line 161 "parser.y"
+    {printf("\nkoniecprogramu\n");;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 59 "parser.y"
-    {printf("sdad");;}
+#line 162 "parser.y"
+    {printf("\nkoniecprogramu\n");;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 62 "parser.y"
-    {install((yyvsp[(3) - (3)].sval));;}
+#line 165 "parser.y"
+    {make_variable((yyvsp[(3) - (3)].sval));;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 64 "parser.y"
-    {install((yyvsp[(1) - (1)].sval));;}
+#line 167 "parser.y"
+    {make_variable((yyvsp[(1) - (1)].sval));;}
+    break;
+
+  case 10:
+
+/* Line 1455 of yacc.c  */
+#line 173 "parser.y"
+    {assign((yyvsp[(1) - (4)].ival));;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 78 "parser.y"
+#line 181 "parser.y"
     {printf("xxx");;}
     break;
 
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 94 "parser.y"
-    {printf("liczba");;}
+#line 197 "parser.y"
+    {push_number(yylval.ival);;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 97 "parser.y"
-    {printf("pidd");;}
+#line 200 "parser.y"
+    {(yyval.ival) = findVar((yyvsp[(1) - (1)].sval));;}
+    break;
+
+  case 34:
+
+/* Line 1455 of yacc.c  */
+#line 201 "parser.y"
+    {(yyval.ival) = 0;;}
+    break;
+
+  case 35:
+
+/* Line 1455 of yacc.c  */
+#line 202 "parser.y"
+    {(yyval.ival) = 0;;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1538 "parser.tab.c"
+#line 1655 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1746,12 +1863,13 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 101 "parser.y"
+#line 204 "parser.y"
 
 
 int main( int argc, char *argv[] ){ 
 	FILE *yyin;
 	//yyin = fopen( argv[0], "r" );
+	setup();
 	yyparse();
 }
 void yyerror (const char *s) 
