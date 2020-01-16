@@ -157,7 +157,14 @@ void yyerror(const char *s);
 		gen_code("ADD",EBX);
 		gen_code("STOREI",ESP);
 	}
-	
+	void minus(){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("SUB",EBX);
+		gen_code("STOREI",ESP);
+	}
 
 
 	
