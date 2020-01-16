@@ -149,6 +149,14 @@ void yyerror(const char *s);
 		
 
 	}
+	void plus(){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("ADD",EBX);
+		gen_code("STOREI",ESP);
+	}
 	
 
 
@@ -193,13 +201,13 @@ command:		identifier ASSIGN expression ';'			{assign($1);			}
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
 |				FOR PIDENTIFIER FROM value TO value DOWNTO value commands ENDFOR
 |				READ identifier ';'
-|				WRITE value  ';' {printf("xxx");}
+|				WRITE value  ';' {}
 ;
-expression:		value 							{printf("stala");}
-|				value PLUS value 				{printf("dodawanie");}
-|				value MINUS value
-|				value TIMES value 				{printf("mnozenie");}
-|				value DIV value
+expression:		value 							{}
+|				value PLUS value 				{ plus();}
+|				value MINUS value 				{ minus()}
+|				value TIMES value 				{ }
+|				value DIV value 				{ }
 |				value MOD value
 ;
 condition:		value EQ value
@@ -222,13 +230,14 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
 int main( int argc, char *argv[] ){ 
 	extern FILE *yyin;
 	extern FILE *yyout;
-	setup();
+	
 	if(argc>0){
 		yyin = fopen( argv[1], "r" );
 	}
 	if(argc>1){
 		yyout = fopen( argv[2], "w" );
 	}
+	setup();
 	yyparse();
 }
 void yyerror (const char *s) 

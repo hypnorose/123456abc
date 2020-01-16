@@ -2,13 +2,11 @@
 #include "parser.tab.h"
 #include <string.h>
 %}
-%option debug
 %option noyywrap
 num [-]?[0-9]+
 ID [_a-z]+
 %%
-{ID} 				{	printf("found id\n"); 
-						yylval.sval = strdup(yytext);
+{ID} 				{yylval.sval = strdup(yytext);
 						return PIDENTIFIER	;			}
 {num} 				{	yylval.ival = atoi(yytext);
 						return NUM;						}
@@ -41,7 +39,7 @@ LEQ 				{	return LEQ;						}
 GEQ 				{	return GEQ;						}
 
 [;,\(\)]			{	return yytext[0];				}
-[ \t\n]$			{									}
+[ \t\n]+			{									}
 
 %%	
 
