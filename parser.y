@@ -149,6 +149,7 @@ void yyerror(const char *s);
 		
 
 	}
+namespace math {
 	void plus(){
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
@@ -165,6 +166,7 @@ void yyerror(const char *s);
 		gen_code("SUB",EBX);
 		gen_code("STOREI",ESP);
 	}
+}
 
 
 	
@@ -211,8 +213,8 @@ command:		identifier ASSIGN expression ';'			{assign($1);			}
 |				WRITE value  ';' {}
 ;
 expression:		value 							{}
-|				value PLUS value 				{ plus();}
-|				value MINUS value 				{ minus()}
+|				value PLUS value 				{ math::plus();}
+|				value MINUS value 				{ math::minus();}
 |				value TIMES value 				{ }
 |				value DIV value 				{ }
 |				value MOD value
