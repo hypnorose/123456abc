@@ -38,7 +38,7 @@
 #define EBP 100
 #define STACK_OVERFLOW 300
 #define DATA_START 301
-
+extern FILE *yyout;
 void yyerror(const char *s);
 	int ebp = 100;
 	int esp = ebp;
@@ -55,19 +55,27 @@ void yyerror(const char *s);
 	cmd output[999];
 	int output_offset=0;
 	int data_offset = 0;
-
-
-
-	void gen_code(const char * code,int arg){
+	void gen_code(const char * code){
+		printf("%s\n",code);
+		fprintf(yyout,"%s\n",code);
+		output[output_offset++].oper = strdup(code);
+	}
+		void gen_code(const char * code,int arg){
 		printf("%s %d\n",code,arg);
+		fprintf(yyout,"%s %d\n",code,arg);
 		output[output_offset].oper = strdup(code);
 		output[output_offset++].arg = arg;
 	}
 
-	void gen_code(const char * code){
-		printf("%s\n",code);
-		output[output_offset++].oper = strdup(code);
+
+	void pop(){
+		gen_code("LOAD",ESP);
+		gen_code("DEC");
+		gen_code("STORE",ESP);
 	}
+
+
+
 	void numberToP0(int number){
 		gen_code("SUB",EAX);
 		if(number > 0)
@@ -119,18 +127,26 @@ void yyerror(const char *s);
 	void assign(int var_addr){
 		gen_code("LOADI",ESP);
 		gen_code("STORE",var_addr);
-
+		pop();
 	}
-	void pop(char * var_name){
-
-	}
-
+	
 	void setup(){
 		gen_code("SUB",EAX);
 		gen_code("INC");
 		gen_code("STORE",ONE);
 		numberToP0(EBP);
 		gen_code("STORE",ESP);
+
+	}
+
+	void pushIdValue(int addr  ){
+		gen_code("LOAD",ESP);
+		gen_code("INC");
+		gen_code("STORE",ESP);
+
+		gen_code("LOAD",addr);
+		gen_code("STOREI",ESP);
+		
 
 	}
 	
@@ -151,7 +167,6 @@ void yyerror(const char *s);
 	using namespace std;
 	extern int yylex();
 	extern int yyparse();
-	
 	extern FILE *yyin;
 
 	
@@ -170,7 +185,7 @@ declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
 commands:		commands command
 |				command
 ;
-command:		identifier ASSIGN expression ';'			{assign($1);}
+command:		identifier ASSIGN expression ';'			{assign($1);			}
 |				IF condition THEN commands ELSE commands ENDIF
 |				IF condition THEN commands ENDIF
 |				WHILE condition DO commands ENDIF
@@ -180,33 +195,40 @@ command:		identifier ASSIGN expression ';'			{assign($1);}
 |				READ identifier ';'
 |				WRITE value  ';' {printf("xxx");}
 ;
-expression:		value
-|				value "PLUS" value
-|				value "MINUS" value
-|				value "TIMES" value
-|				value "DIV" value
-|				value "MOD" value
+expression:		value 							{printf("stala");}
+|				value PLUS value 				{printf("dodawanie");}
+|				value MINUS value
+|				value TIMES value 				{printf("mnozenie");}
+|				value DIV value
+|				value MOD value
 ;
-condition:		value "EQ" value
-|				value "NEQ" value
-|				value "LE" value
-|				value "GE" value
-|				value "LEQ" value
-|				value "GEQ" value
+condition:		value EQ value
+|				value NEQ value
+|				value LE value
+|				value GE value
+|				value LEQ value
+|				value GEQ value
 ;
-value:			NUM 							{push_number(yylval.ival);}
-|				identifier
+value:			NUM 							{	push_number(yylval.ival);		}
+|				identifier						{	pushIdValue($1);					
+																					}
 ;
-identifier:		PIDENTIFIER 					{$$ = findVar($1);}
-|				PIDENTIFIER'('PIDENTIFIER')'	{$$ = 0;}
-|				PIDENTIFIER'('NUM')'			{$$ = 0;}
+identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
+|				PIDENTIFIER'('PIDENTIFIER')'	{	$$ = 0;}
+|				PIDENTIFIER'('NUM')'			{	$$ = 0;}
 ;
 %%
 
 int main( int argc, char *argv[] ){ 
-	FILE *yyin;
-	//yyin = fopen( argv[0], "r" );
+	extern FILE *yyin;
+	extern FILE *yyout;
 	setup();
+	if(argc>0){
+		yyin = fopen( argv[1], "r" );
+	}
+	if(argc>1){
+		yyout = fopen( argv[2], "w" );
+	}
 	yyparse();
 }
 void yyerror (const char *s) 
