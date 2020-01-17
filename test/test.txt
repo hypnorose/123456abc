@@ -1,10 +1,10 @@
 DECLARE
-a
+a,b,c
 BEGIN
-a ASSIGN -6 PLUS 2;
-WRITE a;
-a ASSIGN 5 TIMES a;
-WRITE a;
-a ASSIGN a TIMES a;
-WRITE a;
+READ a;
+READ b;
+c ASSIGN a MOD b;
+WRITE c;
+c ASSIGN a DIV b;
+WRITE c;
 END
