@@ -33,6 +33,7 @@
 #define ESI 4
 #define EDI 5
 #define ONE 6
+#define MINUS_ONE 7
 
 #define ESP 11
 #define EBP 100
@@ -136,6 +137,9 @@ void yyerror(const char *s);
 		gen_code("STORE",ONE);
 		numberToP0(EBP);
 		gen_code("STORE",ESP);
+		gen_code("SUB",EAX);
+		gen_code("DEC");
+		gen_code("STORE",MINUS_ONE);
 
 	}
 
