@@ -172,6 +172,7 @@ typedef union YYSTYPE
 #define ESI 4
 #define EDI 5
 #define ONE 6
+#define MINUS_ONE 7
 
 #define ESP 11
 #define EBP 100
@@ -194,16 +195,17 @@ void yyerror(const char *s);
 	cmd output[999];
 	int output_offset=0;
 	int data_offset = 0;
-	void gen_code(const char * code){
+	int gen_code(const char * code){
 		printf("%s\n",code);
-		fprintf(yyout,"%s\n",code);
-		output[output_offset++].oper = strdup(code);
-	}
-		void gen_code(const char * code,int arg){
-		printf("%s %d\n",code,arg);
-		fprintf(yyout,"%s %d\n",code,arg);
 		output[output_offset].oper = strdup(code);
-		output[output_offset++].arg = arg;
+		output[output_offset].arg = -1;
+		return output_offset++;
+	}
+	int gen_code(const char * code,int arg){
+		printf("%s %d\n",code,arg);
+		output[output_offset].oper = strdup(code);
+		output[output_offset].arg = arg;
+		return output_offset++;
 	}
 
 
@@ -275,6 +277,9 @@ void yyerror(const char *s);
 		gen_code("STORE",ONE);
 		numberToP0(EBP);
 		gen_code("STORE",ESP);
+		gen_code("SUB",EAX);
+		gen_code("DEC");
+		gen_code("STORE",MINUS_ONE);
 
 	}
 
@@ -286,6 +291,11 @@ void yyerror(const char *s);
 		gen_code("LOAD",addr);
 		gen_code("STOREI",ESP);
 		
+
+	}
+	void write(){
+		gen_code("LOADI",ESP);
+		gen_code("PUT");
 
 	}
 namespace math {
@@ -304,6 +314,52 @@ namespace math {
 		gen_code("LOADI",ESP);
 		gen_code("SUB",EBX);
 		gen_code("STOREI",ESP);
+	}
+	void times(){
+		gen_code("SUB",EAX);
+		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
+		gen_code("INC");
+		gen_code("STORE",EDX);
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		int again =  gen_code("LOAD",EDX);
+		gen_code("SHIFT",ONE);
+		gen_code("STORE",EDX);
+		gen_code("SUB",EBX);
+		gen_code("JNEG",again); 
+		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
+		// jest ona w EDX, w ECX pierwszy czynnik, w EBX drugi
+		int loop = gen_code("LOAD",EBX);
+		gen_code("SUB",EDX);
+		int jumpneg = gen_code("JNEG",-1);
+		// tutaj program wchodzi jeśli jest nieujemne, tzn da sie odjac potege dwojki
+		gen_code("LOAD",ECX);
+		gen_code("SHIFT",EDX);
+		gen_code("ADD",ESI);
+		gen_code("STORE",ESI); // dodajemy 2^EDX * ECX do ESI
+
+		gen_code("LOAD",EBX);
+		gen_code("SUB",EDX);	
+		gen_code("STORE",EBX);
+
+		int neg_target = gen_code("LOAD",EDX); // tu sobie skaczemu jak jest negatywne
+		output[jumpneg].arg = neg_target;
+		gen_code("SHIFT",MINUS_ONE);
+		gen_code("STORE",EDX);
+		gen_code("LOAD",EBX);
+		int jump_end = gen_code("JZERO",-1);
+		gen_code("JUMP", loop);
+		int end_target = gen_code("LOAD",ESP);
+		output[jump_end].arg=end_target;
+		
+		gen_code("INC");
+		gen_code("STORE",ESP);
+		gen_code("LOAD",ESI);
+		gen_code("STOREI",ESP);
+
 	}
 }
 
@@ -329,7 +385,7 @@ namespace math {
 
 
 /* Line 264 of yacc.c  */
-#line 333 "parser.tab.c"
+#line 389 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -630,12 +686,12 @@ static const yytype_int8 yyrhs[] =
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
-       0,   193,   193,   194,   197,   198,   199,   200,   202,   203,
-     205,   206,   207,   208,   209,   210,   211,   212,   213,   215,
-     216,   217,   218,   219,   220,   222,   223,   224,   225,   226,
-     227,   229,   230,   233,   234,   235
+       0,   249,   249,   250,   253,   254,   255,   256,   258,   259,
+     261,   262,   263,   264,   265,   266,   267,   268,   269,   271,
+     272,   273,   274,   275,   276,   278,   279,   280,   281,   282,
+     283,   285,   286,   289,   290,   291
 };
 #endif
 
@@ -1609,91 +1665,91 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 193 "parser.y"
+#line 249 "parser.y"
     {printf("\nkoniecprogramu\n");;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 194 "parser.y"
+#line 250 "parser.y"
     {printf("\nkoniecprogramu\n");;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 197 "parser.y"
+#line 253 "parser.y"
     {make_variable((yyvsp[(3) - (3)].sval));;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 199 "parser.y"
+#line 255 "parser.y"
     {make_variable((yyvsp[(1) - (1)].sval));;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 205 "parser.y"
+#line 261 "parser.y"
     {assign((yyvsp[(1) - (4)].ival));			;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 213 "parser.y"
-    {;}
+#line 269 "parser.y"
+    {write();;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 215 "parser.y"
+#line 271 "parser.y"
     {;}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 216 "parser.y"
+#line 272 "parser.y"
     { math::plus();;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 217 "parser.y"
+#line 273 "parser.y"
     { math::minus();;}
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 218 "parser.y"
-    { ;}
+#line 274 "parser.y"
+    { math::times();;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 219 "parser.y"
+#line 275 "parser.y"
     { ;}
     break;
 
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 229 "parser.y"
+#line 285 "parser.y"
     {	push_number(yylval.ival);		;}
     break;
 
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 230 "parser.y"
+#line 286 "parser.y"
     {	pushIdValue((yyvsp[(1) - (1)].ival));					
 																					;}
     break;
@@ -1701,28 +1757,28 @@ yyreduce:
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 233 "parser.y"
+#line 289 "parser.y"
     {	(yyval.ival) = findVar((yyvsp[(1) - (1)].sval));;}
     break;
 
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 234 "parser.y"
+#line 290 "parser.y"
     {	(yyval.ival) = 0;;}
     break;
 
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 235 "parser.y"
+#line 291 "parser.y"
     {	(yyval.ival) = 0;;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1726 "parser.tab.c"
+#line 1782 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1934,7 +1990,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 237 "parser.y"
+#line 293 "parser.y"
 
 
 int main( int argc, char *argv[] ){ 
@@ -1949,6 +2005,14 @@ int main( int argc, char *argv[] ){
 	}
 	setup();
 	yyparse();
+	gen_code("HALT");
+	for(int i=0;i<output_offset;i++){
+		if(output[i].arg!=-1){
+			fprintf(yyout,"%s %d\n",output[i].oper,output[i].arg);
+		}
+		else fprintf(yyout,"%s\n",output[i].oper);
+	}
+
 }
 void yyerror (const char *s) 
 {

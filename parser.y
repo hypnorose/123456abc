@@ -56,16 +56,17 @@ void yyerror(const char *s);
 	cmd output[999];
 	int output_offset=0;
 	int data_offset = 0;
-	void gen_code(const char * code){
+	int gen_code(const char * code){
 		printf("%s\n",code);
-		fprintf(yyout,"%s\n",code);
-		output[output_offset++].oper = strdup(code);
-	}
-		void gen_code(const char * code,int arg){
-		printf("%s %d\n",code,arg);
-		fprintf(yyout,"%s %d\n",code,arg);
 		output[output_offset].oper = strdup(code);
-		output[output_offset++].arg = arg;
+		output[output_offset].arg = -1;
+		return output_offset++;
+	}
+	int gen_code(const char * code,int arg){
+		printf("%s %d\n",code,arg);
+		output[output_offset].oper = strdup(code);
+		output[output_offset].arg = arg;
+		return output_offset++;
 	}
 
 
@@ -153,6 +154,11 @@ void yyerror(const char *s);
 		
 
 	}
+	void write(){
+		gen_code("LOADI",ESP);
+		gen_code("PUT");
+
+	}
 namespace math {
 	void plus(){
 		gen_code("LOADI",ESP);
@@ -169,6 +175,52 @@ namespace math {
 		gen_code("LOADI",ESP);
 		gen_code("SUB",EBX);
 		gen_code("STOREI",ESP);
+	}
+	void times(){
+		gen_code("SUB",EAX);
+		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
+		gen_code("INC");
+		gen_code("STORE",EDX);
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		int again =  gen_code("LOAD",EDX);
+		gen_code("SHIFT",ONE);
+		gen_code("STORE",EDX);
+		gen_code("SUB",EBX);
+		gen_code("JNEG",again); 
+		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
+		// jest ona w EDX, w ECX pierwszy czynnik, w EBX drugi
+		int loop = gen_code("LOAD",EBX);
+		gen_code("SUB",EDX);
+		int jumpneg = gen_code("JNEG",-1);
+		// tutaj program wchodzi jeśli jest nieujemne, tzn da sie odjac potege dwojki
+		gen_code("LOAD",ECX);
+		gen_code("SHIFT",EDX);
+		gen_code("ADD",ESI);
+		gen_code("STORE",ESI); // dodajemy 2^EDX * ECX do ESI
+
+		gen_code("LOAD",EBX);
+		gen_code("SUB",EDX);	
+		gen_code("STORE",EBX);
+
+		int neg_target = gen_code("LOAD",EDX); // tu sobie skaczemu jak jest negatywne
+		output[jumpneg].arg = neg_target;
+		gen_code("SHIFT",MINUS_ONE);
+		gen_code("STORE",EDX);
+		gen_code("LOAD",EBX);
+		int jump_end = gen_code("JZERO",-1);
+		gen_code("JUMP", loop);
+		int end_target = gen_code("LOAD",ESP);
+		output[jump_end].arg=end_target;
+		
+		gen_code("INC");
+		gen_code("STORE",ESP);
+		gen_code("LOAD",ESI);
+		gen_code("STOREI",ESP);
+
 	}
 }
 
@@ -214,12 +266,12 @@ command:		identifier ASSIGN expression ';'			{assign($1);			}
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
 |				FOR PIDENTIFIER FROM value TO value DOWNTO value commands ENDFOR
 |				READ identifier ';'
-|				WRITE value  ';' {}
+|				WRITE value  ';' {write();}
 ;
 expression:		value 							{}
 |				value PLUS value 				{ math::plus();}
 |				value MINUS value 				{ math::minus();}
-|				value TIMES value 				{ }
+|				value TIMES value 				{ math::times();}
 |				value DIV value 				{ }
 |				value MOD value
 ;
@@ -252,6 +304,14 @@ int main( int argc, char *argv[] ){
 	}
 	setup();
 	yyparse();
+	gen_code("HALT");
+	for(int i=0;i<output_offset;i++){
+		if(output[i].arg!=-1){
+			fprintf(yyout,"%s %d\n",output[i].oper,output[i].arg);
+		}
+		else fprintf(yyout,"%s\n",output[i].oper);
+	}
+
 }
 void yyerror (const char *s) 
 {
