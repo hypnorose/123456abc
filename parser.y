@@ -114,7 +114,7 @@ void yyerror(const char *s);
 			gen_code("SUB",EBX);
 		
 		}
-			gen_code("PUT");
+			//gen_code("PUT");
 	}
 	void push_number(int number){
 		gen_code("LOAD",ESP);
@@ -168,6 +168,10 @@ void yyerror(const char *s);
 		gen_code("LOADI",ESP);
 		gen_code("PUT");
 
+	}
+	void read(int v){
+		gen_code("GET");
+		gen_code("STORE",v);
 	}
 namespace math {
 	void plus(){
@@ -296,7 +300,7 @@ command:		identifier ASSIGN expression ';'			{assign($1);			}
 | 				DO commands WHILE condition ENDDO
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
 |				FOR PIDENTIFIER FROM value TO value DOWNTO value commands ENDFOR
-|				READ identifier ';'
+|				READ identifier ';' {read($2);}
 |				WRITE value  ';' {write();}
 ;
 expression:		value 							{}
