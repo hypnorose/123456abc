@@ -193,7 +193,7 @@ namespace math {
 	void times(){
 		gen_code("SUB",EAX);
 		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
-		gen_code("STORE",EDI); // zerujemy esi, tu będzie wynik na końcu
+		gen_code("STORE",EDI); 
 		gen_code("STORE",EDX);
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
@@ -245,8 +245,8 @@ namespace math {
 		int end_target = gen_code("LOAD",ESP);
 		output[jump_end].arg=end_target;
 		
-		gen_code("INC");
-		gen_code("STORE",ESP);
+		// gen_code("INC");
+		// gen_code("STORE",ESP);
 		gen_code("LOAD",EDI);
 		int no_minus = gen_code("JZERO",-1);
 		gen_code("SUB",EAX);
@@ -256,6 +256,83 @@ namespace math {
 		output[finish].arg=gen_code("STOREI",ESP);
 
 
+	}
+	void div(){
+		gen_code("SUB",EAX);
+		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
+		gen_code("STORE",EDI); 
+		gen_code("STORE",EDX);
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX); // dzielnik		}
+		pop();
+		gen_code("LOAD",EBX);
+		int jmp_neg1 = gen_code("JPOS",-1);
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("STORE",EDI);
+		gen_code("SUB",EAX);
+		gen_code("SUB",EBX); // jesli dzielnik ujemny to robimy z niego dodatni
+		gen_code("STORE",EBX);
+		output[jmp_neg1].arg = gen_code("LOADI",ESP);
+		gen_code("STORE",ECX); // ECX - dzielna
+		int jmp_neg2 = gen_code("JPOS",-1);
+		gen_code("SUB",EAX);
+		gen_code("SUB",ECX); // jesli dzielna ujemna to niech bedzie dodatnia
+		gen_code("STORE",ECX);
+		gen_code("LOAD",EDI);
+		gen_code("DEC");
+		gen_code("STORE",EDI);
+		output[jmp_neg2].arg = gen_code("SUB",EAX);
+		int m = gen_code("LOAD",EDX); // wykladnik potegi
+		gen_code("INC");
+		gen_code("STORE",EDX);
+		gen_code("SUB",EAX);
+		gen_code("ADD",EBX);
+		gen_code("SHIFT",EDX);
+		gen_code("STORE",EEX); // wartosc potegi * baza
+		gen_code("SUB",ECX);
+		gen_code("JNEG",m); 
+
+		//db
+		gen_code("LOAD",EEX);
+		gen_code("LOAD",EDX);
+		//db
+		int again = gen_code("LOAD",ECX);
+		gen_code("SUB",EEX);
+		int jmp_lower = gen_code("JNEG",-1); // skok jeśli EEX > ECX
+		
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("SHIFT",EDX);
+		gen_code("ADD",ESI);
+
+	
+		gen_code("STORE",ESI);
+
+		gen_code("LOAD",ECX);
+		gen_code("SUB",EEX);
+		gen_code("STORE",ECX);
+		
+		output[jmp_lower].arg = gen_code("LOAD",EEX);
+	
+		gen_code("SHIFT",MINUS_ONE);					// neg
+		gen_code("STORE",EEX);
+		gen_code("LOAD",EDX);
+		gen_code("DEC");
+		gen_code("STORE",EDX);
+		
+		gen_code("INC");
+		int jmp_koniec = gen_code("JZERO",-1);
+			gen_code("JUMP",again);
+		output[jmp_koniec].arg = gen_code("LOAD",EDI);
+
+		int jmp_pos_out = gen_code("JZERO",-1);
+		gen_code("SUB",EAX);
+		gen_code("SUB",ESI);
+		gen_code("STORE",ESI);
+
+		output[jmp_pos_out].arg = gen_code("LOAD",ESI);
+		gen_code("STOREI",ESP);
 	}
 }
 
@@ -307,7 +384,7 @@ expression:		value 							{}
 |				value PLUS value 				{ math::plus();}
 |				value MINUS value 				{ math::minus();}
 |				value TIMES value 				{ math::times();}
-|				value DIV value 				{ }
+|				value DIV value 				{ math::div();}
 |				value MOD value
 ;
 condition:		value EQ value
