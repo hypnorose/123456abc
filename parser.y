@@ -80,11 +80,14 @@ void yyerror(const char *s);
 
 	void numberToP0(int number){
 		gen_code("SUB",EAX);
-		if(number > 0)
-			gen_code("INC");
+		gen_code("INC");
+		bool neg =0;
+		if(number > 0);
+		
 		else if (number < 0){
+			neg=1;
 			number=-number;
-			gen_code("DEC");
+			
 		}
 
 		bool opers[100];// 0 - (+1); 1 - (*2)
@@ -105,6 +108,13 @@ void yyerror(const char *s);
 			}
 			else gen_code("SHIFT", ONE);
 		}
+		if(neg){
+			gen_code("STORE",EBX);
+			gen_code("SUB",EAX);
+			gen_code("SUB",EBX);
+		
+		}
+			gen_code("PUT");
 	}
 	void push_number(int number){
 		gen_code("LOAD",ESP);
@@ -179,9 +189,17 @@ namespace math {
 	void times(){
 		gen_code("SUB",EAX);
 		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
+		gen_code("STORE",EDI); // zerujemy esi, tu będzie wynik na końcu
 		gen_code("STORE",EDX);
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
+		int jmp_pos = gen_code("JPOS",-1);
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("STORE",EDI);
+		gen_code("SUB",EAX);
+		gen_code("SUB",EBX);
+		output[jmp_pos].arg = 1 + gen_code("STORE",EBX); 
 		pop();
 		gen_code("LOADI",ESP);
 		gen_code("STORE",ECX);
@@ -225,8 +243,14 @@ namespace math {
 		
 		gen_code("INC");
 		gen_code("STORE",ESP);
-		gen_code("LOAD",ESI);
-		gen_code("STOREI",ESP);
+		gen_code("LOAD",EDI);
+		int no_minus = gen_code("JZERO",-1);
+		gen_code("SUB",EAX);
+		gen_code("SUB",ESI);
+		int finish =  gen_code("JUMP",-1);
+		output[no_minus].arg = gen_code("LOAD",ESI);
+		output[finish].arg=gen_code("STOREI",ESP);
+
 
 	}
 }
