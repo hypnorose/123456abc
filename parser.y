@@ -33,8 +33,8 @@
 #define ESI 4
 #define EDI 5
 #define ONE 6
-#define MINUS_ONE 7
-
+#define MINUS_ONE 8
+#define EEX 7
 #define ESP 11
 #define EBP 100
 #define STACK_OVERFLOW 300
@@ -179,7 +179,6 @@ namespace math {
 	void times(){
 		gen_code("SUB",EAX);
 		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
-		gen_code("INC");
 		gen_code("STORE",EDX);
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
@@ -187,29 +186,36 @@ namespace math {
 		gen_code("LOADI",ESP);
 		gen_code("STORE",ECX);
 		int again =  gen_code("LOAD",EDX);
-		gen_code("SHIFT",ONE);
+		gen_code("INC");
 		gen_code("STORE",EDX);
-		gen_code("PUT"); // debug
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("SHIFT",EDX);
+		gen_code("STORE",EEX);
 		gen_code("SUB",EBX);
 		gen_code("JNEG",again); 
+
 		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
 		// jest ona w EDX, w ECX pierwszy czynnik, w EBX drugi
 		int loop = gen_code("LOAD",EBX);
-		gen_code("SUB",EDX);
+		gen_code("SUB",EEX);
 		int jumpneg = gen_code("JNEG",-1);
 		// tutaj program wchodzi jeśli jest nieujemne, tzn da sie odjac potege dwojki
 		gen_code("LOAD",ECX);
 		gen_code("SHIFT",EDX);
 		gen_code("ADD",ESI);
 		gen_code("STORE",ESI); // dodajemy 2^EDX * ECX do ESI
-		gen_code("PUT"); // debug
 		gen_code("LOAD",EBX);
-		gen_code("SUB",EDX);	
+		gen_code("SUB",EEX);	
 		gen_code("STORE",EBX);
 
-		int neg_target = gen_code("LOAD",EDX); // tu sobie skaczemu jak jest negatywne
+		int neg_target = gen_code("LOAD",EEX); // tu sobie skaczemu jak jest negatywne
 		output[jumpneg].arg = neg_target;
 		gen_code("SHIFT",MINUS_ONE);
+		gen_code("STORE",EEX);
+		//debug
+		gen_code("LOAD",EDX);
+		gen_code("DEC");
 		gen_code("STORE",EDX);
 		gen_code("LOAD",EBX);
 		int jump_end = gen_code("JZERO",-1);

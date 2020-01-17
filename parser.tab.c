@@ -172,8 +172,8 @@ typedef union YYSTYPE
 #define ESI 4
 #define EDI 5
 #define ONE 6
-#define MINUS_ONE 7
-
+#define MINUS_ONE 8
+#define EEX 7
 #define ESP 11
 #define EBP 100
 #define STACK_OVERFLOW 300
@@ -318,7 +318,6 @@ namespace math {
 	void times(){
 		gen_code("SUB",EAX);
 		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
-		gen_code("INC");
 		gen_code("STORE",EDX);
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
@@ -326,29 +325,36 @@ namespace math {
 		gen_code("LOADI",ESP);
 		gen_code("STORE",ECX);
 		int again =  gen_code("LOAD",EDX);
-		gen_code("SHIFT",ONE);
+		gen_code("INC");
 		gen_code("STORE",EDX);
-		gen_code("PUT");
+		gen_code("SUB",EAX);
+		gen_code("INC");
+		gen_code("SHIFT",EDX);
+		gen_code("STORE",EEX);
 		gen_code("SUB",EBX);
 		gen_code("JNEG",again); 
+
 		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
 		// jest ona w EDX, w ECX pierwszy czynnik, w EBX drugi
 		int loop = gen_code("LOAD",EBX);
-		gen_code("SUB",EDX);
+		gen_code("SUB",EEX);
 		int jumpneg = gen_code("JNEG",-1);
 		// tutaj program wchodzi jeśli jest nieujemne, tzn da sie odjac potege dwojki
 		gen_code("LOAD",ECX);
 		gen_code("SHIFT",EDX);
 		gen_code("ADD",ESI);
 		gen_code("STORE",ESI); // dodajemy 2^EDX * ECX do ESI
-
 		gen_code("LOAD",EBX);
-		gen_code("SUB",EDX);	
+		gen_code("SUB",EEX);	
 		gen_code("STORE",EBX);
 
-		int neg_target = gen_code("LOAD",EDX); // tu sobie skaczemu jak jest negatywne
+		int neg_target = gen_code("LOAD",EEX); // tu sobie skaczemu jak jest negatywne
 		output[jumpneg].arg = neg_target;
 		gen_code("SHIFT",MINUS_ONE);
+		gen_code("STORE",EEX);
+		//debug
+		gen_code("LOAD",EDX);
+		gen_code("DEC");
 		gen_code("STORE",EDX);
 		gen_code("LOAD",EBX);
 		int jump_end = gen_code("JZERO",-1);
@@ -386,7 +392,7 @@ namespace math {
 
 
 /* Line 264 of yacc.c  */
-#line 390 "parser.tab.c"
+#line 396 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -689,10 +695,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   250,   250,   251,   254,   255,   256,   257,   259,   260,
-     262,   263,   264,   265,   266,   267,   268,   269,   270,   272,
-     273,   274,   275,   276,   277,   279,   280,   281,   282,   283,
-     284,   286,   287,   290,   291,   292
+       0,   256,   256,   257,   260,   261,   262,   263,   265,   266,
+     268,   269,   270,   271,   272,   273,   274,   275,   276,   278,
+     279,   280,   281,   282,   283,   285,   286,   287,   288,   289,
+     290,   292,   293,   296,   297,   298
 };
 #endif
 
@@ -1666,91 +1672,91 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 250 "parser.y"
+#line 256 "parser.y"
     {printf("\nkoniecprogramu\n");;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 251 "parser.y"
+#line 257 "parser.y"
     {printf("\nkoniecprogramu\n");;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 254 "parser.y"
+#line 260 "parser.y"
     {make_variable((yyvsp[(3) - (3)].sval));;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 256 "parser.y"
+#line 262 "parser.y"
     {make_variable((yyvsp[(1) - (1)].sval));;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 262 "parser.y"
+#line 268 "parser.y"
     {assign((yyvsp[(1) - (4)].ival));			;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 270 "parser.y"
+#line 276 "parser.y"
     {write();;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 272 "parser.y"
+#line 278 "parser.y"
     {;}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 273 "parser.y"
+#line 279 "parser.y"
     { math::plus();;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 274 "parser.y"
+#line 280 "parser.y"
     { math::minus();;}
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 275 "parser.y"
+#line 281 "parser.y"
     { math::times();;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 276 "parser.y"
+#line 282 "parser.y"
     { ;}
     break;
 
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 286 "parser.y"
+#line 292 "parser.y"
     {	push_number(yylval.ival);		;}
     break;
 
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 287 "parser.y"
+#line 293 "parser.y"
     {	pushIdValue((yyvsp[(1) - (1)].ival));					
 																					;}
     break;
@@ -1758,28 +1764,28 @@ yyreduce:
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 290 "parser.y"
+#line 296 "parser.y"
     {	(yyval.ival) = findVar((yyvsp[(1) - (1)].sval));;}
     break;
 
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 291 "parser.y"
+#line 297 "parser.y"
     {	(yyval.ival) = 0;;}
     break;
 
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 292 "parser.y"
+#line 298 "parser.y"
     {	(yyval.ival) = 0;;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1783 "parser.tab.c"
+#line 1789 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1991,7 +1997,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 294 "parser.y"
+#line 300 "parser.y"
 
 
 int main( int argc, char *argv[] ){ 
