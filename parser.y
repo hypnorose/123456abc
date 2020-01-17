@@ -189,6 +189,7 @@ namespace math {
 		int again =  gen_code("LOAD",EDX);
 		gen_code("SHIFT",ONE);
 		gen_code("STORE",EDX);
+		gen_code("PUT"); // debug
 		gen_code("SUB",EBX);
 		gen_code("JNEG",again); 
 		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
@@ -201,7 +202,7 @@ namespace math {
 		gen_code("SHIFT",EDX);
 		gen_code("ADD",ESI);
 		gen_code("STORE",ESI); // dodajemy 2^EDX * ECX do ESI
-
+		gen_code("PUT"); // debug
 		gen_code("LOAD",EBX);
 		gen_code("SUB",EDX);	
 		gen_code("STORE",EBX);

@@ -2,6 +2,7 @@
 #include "parser.tab.h"
 #include <string.h>
 %}
+%option debug
 %option noyywrap
 num [-]?[0-9]+
 ID [_a-z]+
