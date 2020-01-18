@@ -57,6 +57,7 @@ void yyerror(const char *s);
 	struct cmd{
 		char * oper;
 		int arg;
+		char * comment;
 	};
 	struct jmp_info{
 		int jmp_false;
@@ -513,8 +514,8 @@ namespace logic {
 		int jmp_false = gen_code("JZERO",-1);
 		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
-
-		j->jmp_true = 0;
+			output[jmp_true].arg=jmp_true+1;
+		j->jmp_true = jmp_true+1;
 		j->jmp_false = jmp_false;
 	}
 	void le(jmp_info * j){
@@ -528,10 +529,10 @@ namespace logic {
 		gen_code("INC");
 		gen_code("SUB",ECX);
 		int jmp_false = gen_code("JPOS",-1);
-		//int jmp_true = gen_code("JUMP",false);
+		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
-
-		j->jmp_true = 0;
+		output[jmp_true].arg=jmp_true+1;
+		j->jmp_true = jmp_true+1;
 		j->jmp_false = jmp_false;
 	}
 	void ge(jmp_info * j){
@@ -545,10 +546,10 @@ namespace logic {
 		gen_code("SUB",ECX);
 		gen_code("DEC"); // różni się od geq tylko ta linijką
 		int jmp_false = gen_code("JNEG",-1);
-		//int jmp_true = gen_code("JUMP",false);
+		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
-
-		j->jmp_true = 0;
+			output[jmp_true].arg=jmp_true+1;
+		j->jmp_true = jmp_true+1;
 		j->jmp_false = jmp_false;
 	}
 	void leq(jmp_info * j){
@@ -561,10 +562,10 @@ namespace logic {
 		gen_code("LOAD",EBX);
 		gen_code("SUB",ECX);
 		int jmp_false = gen_code("JPOS",-1);
-		//int jmp_true = gen_code("JUMP",false);
+		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
-
-		j->jmp_true = 0;
+			output[jmp_true].arg=jmp_true+1;
+		j->jmp_true = jmp_true+1;
 		j->jmp_false = jmp_false;
 	}
 	void geq(jmp_info * j){
@@ -577,10 +578,10 @@ namespace logic {
 		gen_code("LOAD",EBX);
 		gen_code("SUB",ECX);
 		int jmp_false = gen_code("JNEG",-1);
-		//int jmp_true = gen_code("JUMP",false);
+		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
-
-		j->jmp_true = 0;
+			output[jmp_true].arg=jmp_true+1;
+		j->jmp_true = jmp_true+1;
 		j->jmp_false = jmp_false;
 	}
 }
@@ -648,17 +649,23 @@ command:		identifier ASSIGN expression ';'
 					else
 					assign($1);			}
 |				IF condition THEN commands											
-				{$2->jmp_end= gen_code("JUMP",-1);} 
+				{$2->jmp_end= gen_code("JUMP",-1);
+				output[$2->jmp_end].comment = strdup("JUMP TO IF END");
+				} 
 				ELSE 
 				{output[$2->jmp_false].arg = output_offset;}
 				commands ENDIF
-				{output[$2->jmp_end].arg=output_offset;}
+				{output[$2->jmp_end].arg=output_offset;
+				output[output_offset].comment = strdup("IF END");
+				}
 
 |				IF  condition THEN commands ENDIF 							
 				{output[$2->jmp_false].arg  = output_offset;}
 |				WHILE 
 				{$1 = new_jmp_info();
-				$1->jmp_prestart = output_offset;}
+				$1->jmp_prestart = output_offset;;
+				output[output_offset].comment = strdup("WHILESTART");
+				}
 				condition DO commands ENDWHILE		
 				{gen_code("JUMP",$1->jmp_prestart); 
 				printf("%d",$3->jmp_false);
@@ -731,6 +738,8 @@ command:		identifier ASSIGN expression ';'
 					gen_code("LOAD",findVar($2));
 					gen_code("DEC");
 					gen_code("STORE",findVar($2));
+					gen_code("LOAD",ESP);
+					
 					gen_code("JUMP",$1->jmp_prestart);
 					output[$1->jmp_false].arg = output_offset;
 					pop();
