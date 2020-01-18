@@ -27,6 +27,7 @@ WHILE 				{	return WHILE;					}
 ENDWHILE 			{	return ENDWHILE;				}
 ENDDO 				{	return ENDDO;				}
 ENDFOR 				{	return ENDFOR;					}
+FROM 				{	return FROM;					}
 READ 				{	return READ;					}
 DO 					{	return DO;						}
 PLUS 				{	return PLUS;					}
@@ -43,7 +44,7 @@ GE 					{	return GE;						}
 LEQ 				{	return LEQ;						}
 GEQ 				{	return GEQ;						}
 
-[;,\(\)]			{	return yytext[0];				}
+[:;,\(\)]			{	return yytext[0];				}
 [ \t\n]+			{									}
 
 %%	

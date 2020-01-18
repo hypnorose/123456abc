@@ -15,7 +15,7 @@
 %token <sval> PIDENTIFIER 
 %type <ival> identifier
 %type <jval> condition
-%type <jval> WHILE DO
+%type <jval> WHILE DO FOR
 %left PLUS MINUS
 %left TIMES DIV MOD
 
@@ -48,6 +48,10 @@ void yyerror(const char *s);
 	struct cell {
 		int address;
 		char * name;
+		int min;
+		int max;
+		bool tab;
+		
 	};
 
 	struct cmd{
@@ -62,8 +66,8 @@ void yyerror(const char *s);
 	};
 
 
-	cell memory[999];
-	cmd output[999];
+	cell memory[99999];
+	cmd output[99999];
 	int output_offset=0;
 	int data_offset = 0;
 
@@ -150,11 +154,48 @@ void yyerror(const char *s);
 
 
 	int findVar(char * var_name){
-		for(int i=0;i<data_offset;i++){
+		for(int i=0;i<data_offset;){
 			if(strcmp(var_name,memory[i].name)==0)return memory[i].address;
+			if(memory[i].tab==0){
+			i++;
+			}
+			else{
+			 	i+=memory[i].max - memory[i].min +1;
+			}
 		}
+		
 		yyerror("Variable not found");
 		return -1;
+	}
+	int findVar(char * var_name,int index){
+		cell m;
+		bool x = 0;
+		for(int i=0;i<data_offset;){
+			if(strcmp(var_name,memory[i].name)==0){
+				m = memory[i];
+				bool x =1;
+				break;
+			}
+			if(memory[i].tab==0){
+				i++;
+			}
+			else{
+			 	i+=memory[i].max - memory[i].min +1;
+			}
+		}
+		if(x == 0){
+				yyerror("Array not found");
+				return -1;
+		}
+		if(m.tab == 0){
+			yyerror("variable cant be accessed as array");
+		}
+		if(m.max > index){
+			yyerror("index ouf of range");
+		}
+		int a = m.address + index - m.min;
+		return a;
+	
 	}
 	void assign(int var_addr){
 		gen_code("LOADI",ESP);
@@ -548,11 +589,26 @@ namespace logic {
 
 	
 	
-	void make_variable(char * temps){
+	int make_variable(char * temps){
 		printf("%s",temps);
 		memory[data_offset].name = strdup(temps);
 		memory[data_offset].address = data_offset+DATA_START;
-		data_offset++;
+		memory[data_offset].tab = 0;
+		printf("%s %d\n",temps,data_offset);
+		return data_offset++ + DATA_START;
+	}
+	int make_variable(char * temps,int min, int max){
+		int size = max - min + 1;
+	
+		memory[data_offset].name = strdup(temps);
+		memory[data_offset].address = data_offset+DATA_START;
+		memory[data_offset].min = min;
+		memory[data_offset].max = max;
+		memory[data_offset].tab = 1;
+		int x = data_offset;
+		data_offset+=size;
+		printf("%s %d\n",temps,x);
+		return x + DATA_START;
 	}
 	
 
@@ -570,14 +626,27 @@ program: 		DECLARE declarations BGN commands END {printf("\nkoniecprogramu\n");}
 ;
 
 declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
-|				declarations ',' PIDENTIFIER '(' NUM ':' NUM ')'
+|				declarations ',' PIDENTIFIER '(' NUM ':' NUM ')' {make_variable($3,$5,$7);}
 |				PIDENTIFIER										{make_variable($1);}
-|				PIDENTIFIER '(' NUM ':' NUM ')'
+|				PIDENTIFIER '(' NUM ':' NUM ')'					{make_variable($1,$3,$5);}
 ;
 commands:		commands command {printf("tas");}
 |				command {printf("te");}
 ;
-command:		identifier ASSIGN expression ';'									{assign($1);			}
+command:		identifier ASSIGN expression ';'									
+				{
+					if($1 == -1){
+						gen_code("LOADI",ESP);
+						gen_code("STORE",EBX); // wartosc
+						pop();
+						gen_code("LOADI",ESP);
+						gen_code("STORE",ECX); // indeks docelowy
+						gen_code("LOAD",EBX);
+						gen_code("STOREI",ECX);
+						pop();
+					}
+					else
+					assign($1);			}
 |				IF condition THEN commands											
 				{$2->jmp_end= gen_code("JUMP",-1);} 
 				ELSE 
@@ -605,8 +674,69 @@ command:		identifier ASSIGN expression ';'									{assign($1);			}
 					output[$5->jmp_false].arg =output_offset;
 				}
 
-|				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
-|				FOR PIDENTIFIER FROM value TO value DOWNTO value DO commands ENDFOR
+|				FOR PIDENTIFIER FROM value
+				{
+					$1 = new_jmp_info();
+					int addr = make_variable($2);
+					gen_code("LOADI",ESP);
+					gen_code("STORE",addr);
+					pop();
+
+				}
+
+				TO value DO
+				{
+
+					$1->jmp_prestart = gen_code("LOADI",ESP);
+					gen_code("SUB",findVar($2));
+					$1->jmp_false =  gen_code("JNEG",-1);
+				}
+			
+				commands ENDFOR
+				{	
+					gen_code("LOAD",findVar($2));
+					gen_code("INC");
+					gen_code("STORE",findVar($2));
+					gen_code("JUMP",$1->jmp_prestart);
+					output[$1->jmp_false].arg = output_offset;
+					pop();
+					data_offset--;
+				}
+
+
+|				FOR PIDENTIFIER FROM value // down to
+				{
+						$1 = new_jmp_info();
+					int addr = make_variable($2);
+					gen_code("LOADI",ESP);
+					gen_code("STORE",addr);
+					pop();
+
+				}
+
+				DOWNTO value DO
+				{
+					printf("Test");
+					$1->jmp_prestart = 3;
+					printf("\n%d",$1->jmp_prestart);
+					$1->jmp_prestart = gen_code("LOADI",ESP);
+					gen_code("STORE",EBX);
+					gen_code("LOAD",findVar($2));
+					gen_code("SUB",EBX);
+					$1->jmp_false =  gen_code("JNEG",-1);
+				}
+			
+				commands ENDFOR
+				{	
+					gen_code("LOAD",findVar($2));
+					gen_code("DEC");
+					gen_code("STORE",findVar($2));
+					gen_code("JUMP",$1->jmp_prestart);
+					output[$1->jmp_false].arg = output_offset;
+					pop();
+					data_offset--;
+				}
+
 |				READ identifier ';' {read($2);}
 |				WRITE value  ';' {write();}
 ;
@@ -637,13 +767,34 @@ condition:		value EQ value 					{jmp_info* j = new_jmp_info();
 												logic::geq(j);
 												$$ = j;								}
 ;
-value:			NUM 							{	push_number(yylval.ival);		}
-|				identifier						{	pushIdValue($1);					
+value:			NUM 							{	push_number(yylval.ival);	
+												}
+|				identifier						{	if($1 == -1){
+														gen_code("LOADI",ESP);
+														gen_code("LOADI",EAX);
+														gen_code("STOREI",ESP);
+													}
+													else
+													pushIdValue($1);					
 																					}
 ;
 identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
-|				PIDENTIFIER'('PIDENTIFIER')'	{	$$ = 0;}
-|				PIDENTIFIER'('NUM')'			{	$$ = 0;}
+|				PIDENTIFIER'('PIDENTIFIER')'	{	
+													numberToP0(findVar($1));
+													gen_code("STORE",EEX);
+													numberToP0(-memory[findVar($1)].min);
+
+													gen_code("ADD",findVar($3)); // teraz tu jest adres
+													gen_code("ADD",EEX);
+													gen_code("STORE",EDX);
+													gen_code("LOAD",ESP);
+													gen_code("INC");
+													gen_code("STORE",ESP);
+													gen_code("LOAD",EDX);
+													gen_code("STOREI",ESP);
+													$$=-1;
+												}
+|				PIDENTIFIER'('NUM')'			{	$$ = findVar($1,$3);}
 ;
 %%
 
