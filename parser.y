@@ -1,9 +1,9 @@
 %start program
 
-
 %union{
 	char * sval;
 	int ival;
+	struct jmp_info * jval;
 }
 
 %token ASSIGN IF THEN ELSE ENDIF 
@@ -14,7 +14,7 @@
 %token <ival> NUM
 %token <sval> PIDENTIFIER 
 %type <ival> identifier
-
+%type <jval> condition
 %left PLUS MINUS
 %left TIMES DIV MOD
 
@@ -48,14 +48,27 @@ void yyerror(const char *s);
 		int address;
 		char * name;
 	};
+
 	struct cmd{
 		char * oper;
 		int arg;
 	};
+	struct jmp_info{
+		int jmp_false;
+		int jmp_true;
+		int jmp_end;
+	};
+
+
 	cell memory[999];
 	cmd output[999];
 	int output_offset=0;
 	int data_offset = 0;
+
+	jmp_info *  new_jmp_info(){
+		return (jmp_info *)malloc(sizeof(jmp_info));
+	}
+
 	int gen_code(const char * code){
 		printf("%s\n",code);
 		output[output_offset].oper = strdup(code);
@@ -167,11 +180,13 @@ void yyerror(const char *s);
 	void write(){
 		gen_code("LOADI",ESP);
 		gen_code("PUT");
+		pop();
 
 	}
 	void read(int v){
 		gen_code("GET");
 		gen_code("STORE",v);
+
 	}
 namespace math {
 	void plus(){
@@ -420,6 +435,107 @@ namespace math {
 	}
 }
 
+namespace logic {
+	void eq(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",ECX);
+		gen_code("SUB",EBX);
+		int jmp_true = gen_code("JZERO",-1);
+		int jmp_false = gen_code("JUMP",false);
+		output[jmp_true].arg = jmp_false + 1;
+
+		j->jmp_true = jmp_true;
+		j->jmp_false = jmp_false;
+
+	}
+	void neq(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",ECX);
+		gen_code("SUB",EBX);
+		int jmp_false = gen_code("JZERO",-1);
+		//int jmp_true = gen_code("JUMP",false);
+		//output[jmp_true].arg = jmp_false + 1; 
+
+		j->jmp_true = 0;
+		j->jmp_false = jmp_false;
+	}
+	void le(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",EBX);
+		gen_code("INC");
+		gen_code("SUB",ECX);
+		int jmp_false = gen_code("JPOS",-1);
+		//int jmp_true = gen_code("JUMP",false);
+		//output[jmp_true].arg = jmp_false + 1; 
+
+		j->jmp_true = 0;
+		j->jmp_false = jmp_false;
+	}
+	void ge(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",EBX);
+		gen_code("SUB",ECX);
+		gen_code("DEC"); // różni się od geq tylko ta linijką
+		int jmp_false = gen_code("JNEG",-1);
+		//int jmp_true = gen_code("JUMP",false);
+		//output[jmp_true].arg = jmp_false + 1; 
+
+		j->jmp_true = 0;
+		j->jmp_false = jmp_false;
+	}
+	void leq(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",EBX);
+		gen_code("SUB",ECX);
+		int jmp_false = gen_code("JPOS",-1);
+		//int jmp_true = gen_code("JUMP",false);
+		//output[jmp_true].arg = jmp_false + 1; 
+
+		j->jmp_true = 0;
+		j->jmp_false = jmp_false;
+	}
+	void geq(jmp_info * j){
+		gen_code("LOADI",ESP);
+		gen_code("STORE",ECX);
+		pop();
+		gen_code("LOADI",ESP);
+		gen_code("STORE",EBX);
+		pop();
+		gen_code("LOAD",EBX);
+		gen_code("SUB",ECX);
+		int jmp_false = gen_code("JNEG",-1);
+		//int jmp_true = gen_code("JUMP",false);
+		//output[jmp_true].arg = jmp_false + 1; 
+
+		j->jmp_true = 0;
+		j->jmp_false = jmp_false;
+	}
+}
 
 	
 
@@ -454,9 +570,14 @@ declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
 commands:		commands command
 |				command
 ;
-command:		identifier ASSIGN expression ';'			{assign($1);			}
-|				IF condition THEN commands ELSE commands ENDIF
-|				IF condition THEN commands ENDIF
+command:		identifier ASSIGN expression ';'									{assign($1);			}
+|				IF condition THEN commands											
+				{$2->jmp_end= gen_code("JUMP",-1);} 
+				ELSE 
+				{output[$2->jmp_false].arg = output_offset;}
+				commands ENDIF
+				{output[$2->jmp_end].arg=output_offset;}
+|				IF  condition THEN commands ENDIF 									{output[$2->jmp_false].arg  = output_offset;}
 |				WHILE condition DO commands ENDIF
 | 				DO commands WHILE condition ENDDO
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
@@ -472,12 +593,24 @@ expression:		value 							{}
 |				value MOD value 				{ math::modulo();}
 
 ;
-condition:		value EQ value
-|				value NEQ value
-|				value LE value
-|				value GE value
-|				value LEQ value
-|				value GEQ value
+condition:		value EQ value 					{jmp_info* j = new_jmp_info();
+													logic::eq(j);
+												$$ = j;								}
+|				value NEQ value 				{jmp_info* j = new_jmp_info();
+												logic::neq(j);
+												$$ = j;								}
+|				value LE value 					{jmp_info* j = new_jmp_info();
+												logic::le(j);
+												$$ = j;								}
+|				value GE value 					{jmp_info* j = new_jmp_info();
+												logic::ge(j);
+												$$ = j;								}
+|				value LEQ value 				{jmp_info* j = new_jmp_info();
+												logic::leq(j);
+												$$ = j;								}
+|				value GEQ value 				{jmp_info* j = new_jmp_info();
+												logic::geq(j);
+												$$ = j;								}
 ;
 value:			NUM 							{	push_number(yylval.ival);		}
 |				identifier						{	pushIdValue($1);					
