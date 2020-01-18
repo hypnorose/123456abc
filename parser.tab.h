@@ -52,24 +52,25 @@
      WRITE = 268,
      WHILE = 269,
      DO = 270,
-     ENDDO = 271,
-     FROM = 272,
-     DECLARE = 273,
-     END = 274,
-     BGN = 275,
-     PLUS = 276,
-     MINUS = 277,
-     TIMES = 278,
-     DIV = 279,
-     MOD = 280,
-     EQ = 281,
-     NEQ = 282,
-     LE = 283,
-     GE = 284,
-     LEQ = 285,
-     GEQ = 286,
-     NUM = 287,
-     PIDENTIFIER = 288
+     ENDWHILE = 271,
+     ENDDO = 272,
+     FROM = 273,
+     DECLARE = 274,
+     END = 275,
+     BGN = 276,
+     PLUS = 277,
+     MINUS = 278,
+     TIMES = 279,
+     DIV = 280,
+     MOD = 281,
+     EQ = 282,
+     NEQ = 283,
+     LE = 284,
+     GE = 285,
+     LEQ = 286,
+     GEQ = 287,
+     NUM = 288,
+     PIDENTIFIER = 289
    };
 #endif
 
@@ -89,7 +90,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 93 "parser.tab.h"
+#line 94 "parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

@@ -13,7 +13,7 @@ ID [_a-z]+
 						return NUM;						}
 "BEGIN"				{ 	return BGN;						}						
 DECLARE				{	return DECLARE;					}
-END					{	return END;						}
+
 WRITE 				{	return WRITE;					}
 ASSIGN 				{	return ASSIGN;					}
 IF 					{	return IF;						}
@@ -23,10 +23,13 @@ ENDIF 				{	return ENDIF;					}
 FOR 				{	return FOR;						}
 TO 					{	return TO;						}
 DOWNTO 				{	return DOWNTO;					}
+WHILE 				{	return WHILE;					}
+ENDWHILE 			{	return ENDWHILE;				}
 ENDFOR 				{	return ENDFOR;					}
 READ 				{	return READ;					}
 DO 					{	return DO;						}
 PLUS 				{	return PLUS;					}
+END					{	return END;						}
 MINUS 				{	return MINUS;					}
 TIMES 				{	return TIMES;					}
 DIV 				{	return DIV;						}

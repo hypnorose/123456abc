@@ -7,14 +7,15 @@
 }
 
 %token ASSIGN IF THEN ELSE ENDIF 
-%token FOR  TO DOWNTO  ENDFOR READ  WRITE  WHILE DO  ENDDO FROM
-%token DECLARE END BGN
+%token FOR  TO DOWNTO  ENDFOR READ  WRITE  WHILE DO ENDWHILE ENDDO FROM
+%token DECLARE END BGN 
 %token PLUS MINUS TIMES DIV MOD
 %token EQ NEQ LE GE LEQ GEQ 
 %token <ival> NUM
 %token <sval> PIDENTIFIER 
 %type <ival> identifier
 %type <jval> condition
+%type <jval> WHILE
 %left PLUS MINUS
 %left TIMES DIV MOD
 
@@ -25,7 +26,7 @@
 #include <cstdio>
 #include <string.h>
 #undef YYDEBUG
-#define YYDEBUG 0
+#define YYDEBUG 1
 #define EAX 0  // rejestr na który działaja operacje sub add itp
 #define EBX 1
 #define ECX 2
@@ -57,6 +58,7 @@ void yyerror(const char *s);
 		int jmp_false;
 		int jmp_true;
 		int jmp_end;
+		int jmp_prestart;
 	};
 
 
@@ -66,7 +68,8 @@ void yyerror(const char *s);
 	int data_offset = 0;
 
 	jmp_info *  new_jmp_info(){
-		return (jmp_info *)malloc(sizeof(jmp_info));
+		jmp_info * j =  (jmp_info *)malloc(sizeof(jmp_info));
+		return j;
 	}
 
 	int gen_code(const char * code){
@@ -567,8 +570,8 @@ declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
 |				PIDENTIFIER										{make_variable($1);}
 |				PIDENTIFIER '(' NUM ':' NUM ')'
 ;
-commands:		commands command
-|				command
+commands:		commands command {printf("tas");}
+|				command {printf("te");}
 ;
 command:		identifier ASSIGN expression ';'									{assign($1);			}
 |				IF condition THEN commands											
@@ -577,11 +580,20 @@ command:		identifier ASSIGN expression ';'									{assign($1);			}
 				{output[$2->jmp_false].arg = output_offset;}
 				commands ENDIF
 				{output[$2->jmp_end].arg=output_offset;}
-|				IF  condition THEN commands ENDIF 									{output[$2->jmp_false].arg  = output_offset;}
-|				WHILE condition DO commands ENDIF
+
+|				IF  condition THEN commands ENDIF 							
+				{output[$2->jmp_false].arg  = output_offset;}
+|				WHILE 
+				{$1 = new_jmp_info();
+				$1->jmp_prestart = output_offset;}
+				condition DO commands ENDWHILE		
+				{gen_code("JUMP",$1->jmp_prestart); 
+				printf("%d",$3->jmp_false);
+				output[$3->jmp_false].arg  = output_offset;}						
+
 | 				DO commands WHILE condition ENDDO
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
-|				FOR PIDENTIFIER FROM value TO value DOWNTO value commands ENDFOR
+|				FOR PIDENTIFIER FROM value TO value DOWNTO value DO commands ENDFOR
 |				READ identifier ';' {read($2);}
 |				WRITE value  ';' {write();}
 ;
