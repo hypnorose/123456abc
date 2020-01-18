@@ -782,7 +782,7 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
 |				PIDENTIFIER'('PIDENTIFIER')'	{	
 													numberToP0(findVar($1));
 													gen_code("STORE",EEX);
-													numberToP0(-memory[findVar($1)].min);
+													numberToP0(-memory[findVar($1)-DATA_START].min);
 
 													gen_code("ADD",findVar($3)); // teraz tu jest adres
 													gen_code("ADD",EEX);
