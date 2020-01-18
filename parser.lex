@@ -25,6 +25,7 @@ TO 					{	return TO;						}
 DOWNTO 				{	return DOWNTO;					}
 WHILE 				{	return WHILE;					}
 ENDWHILE 			{	return ENDWHILE;				}
+ENDDO 				{	return ENDDO;				}
 ENDFOR 				{	return ENDFOR;					}
 READ 				{	return READ;					}
 DO 					{	return DO;						}

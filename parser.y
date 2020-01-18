@@ -15,7 +15,7 @@
 %token <sval> PIDENTIFIER 
 %type <ival> identifier
 %type <jval> condition
-%type <jval> WHILE
+%type <jval> WHILE DO
 %left PLUS MINUS
 %left TIMES DIV MOD
 
@@ -96,6 +96,10 @@ void yyerror(const char *s);
 
 	void numberToP0(int number){
 		gen_code("SUB",EAX);
+		if(number==0)
+		{
+			return;
+		}
 		gen_code("INC");
 		bool neg =0;
 		if(number > 0);
@@ -466,7 +470,7 @@ namespace logic {
 		gen_code("LOAD",ECX);
 		gen_code("SUB",EBX);
 		int jmp_false = gen_code("JZERO",-1);
-		//int jmp_true = gen_code("JUMP",false);
+		int jmp_true = gen_code("JUMP",false);
 		//output[jmp_true].arg = jmp_false + 1; 
 
 		j->jmp_true = 0;
@@ -591,7 +595,16 @@ command:		identifier ASSIGN expression ';'									{assign($1);			}
 				printf("%d",$3->jmp_false);
 				output[$3->jmp_false].arg  = output_offset;}						
 
-| 				DO commands WHILE condition ENDDO
+| 				DO 
+				{$1 = new_jmp_info();
+				$1->jmp_prestart = output_offset;}
+
+				commands WHILE condition ENDDO
+				{
+					gen_code("JUMP",$1->jmp_prestart); 
+					output[$5->jmp_false].arg =output_offset;
+				}
+
 |				FOR PIDENTIFIER FROM value TO value DO commands ENDFOR
 |				FOR PIDENTIFIER FROM value TO value DOWNTO value DO commands ENDFOR
 |				READ identifier ';' {read($2);}
