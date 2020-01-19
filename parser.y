@@ -105,6 +105,7 @@ void yyerror(const char *s);
 
 
 	void numberToP0(long long number){
+		//printf("%lld",number);
 		gen_code("SUB",EAX);
 		if(number==0)
 		{
@@ -120,9 +121,10 @@ void yyerror(const char *s);
 			
 		}
 
-		bool opers[100];// 0 - (+1); 1 - (*2)
+		bool opers[9999];// 0 - (+1); 1 - (*2)
 		long long oper_number = 0;
 			while(number>1){
+		//		printf("%lld\n",number);
 				if(number%2==0){
 					opers[oper_number++]=1;
 					number/=2;
@@ -912,7 +914,7 @@ int main( int argc, char *argv[] ){
 extern int yylineno;
 void yyerror (const char *s) 
 {
-	printf ("Error: %s::: %d\n", s,yylineno);
+	printf ("Error: %s::: Line: %d\n", s,yylineno);
 	exit(0);
 
 }

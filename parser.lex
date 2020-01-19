@@ -14,7 +14,7 @@ ID [_a-z]+
 <COMMENT>.			{}
 {ID} 				{yylval.sval = strdup(yytext);
 						return PIDENTIFIER	;			}
-{num} 				{	yylval.ival = atoi(yytext);
+{num} 				{	yylval.ival = atoll(yytext);
 						return NUM;						}
 
 
