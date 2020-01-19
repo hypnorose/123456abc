@@ -37,6 +37,7 @@
 #define ONE 6
 #define MINUS_ONE 8
 #define EEX 7
+#define EFX 9
 #define ESP 11
 #define EBP 100
 #define STACK_OVERFLOW 1000
@@ -411,7 +412,7 @@ namespace math {
 		gen_code("LOAD",ECX);
 		gen_code("SUB",EEX);
 		gen_code("STORE",ECX);
-		
+
 		output[jmp_lower].arg = gen_code("LOAD",EEX);
 	
 		gen_code("SHIFT",MINUS_ONE);					// neg
@@ -429,8 +430,12 @@ namespace math {
 		gen_code("SUB",EAX);
 		gen_code("SUB",ESI);
 		gen_code("STORE",ESI);
-
-		output[jmp_zero_2].arg = output[jmp_pos_out].arg = gen_code("LOAD",ESI);
+		gen_code("LOAD",ECX);
+		long long zero =gen_code("JZERO",-1);
+		gen_code("LOAD",ESI);
+		gen_code("DEC");
+		gen_code("STORE",ESI);
+		output[zero].arg = output[jmp_zero_2].arg = output[jmp_pos_out].arg = gen_code("LOAD",ESI);
 		gen_code("STOREI",ESP);
 
 
@@ -443,6 +448,7 @@ namespace math {
 		gen_code("STORE",EDI); 
 		gen_code("STORE",EDX);
 		gen_code("STORE",ECX);
+		gen_code("STORE",EFX);
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX); // dzielnik		}
 		pop();
@@ -462,6 +468,12 @@ namespace math {
 		gen_code("SUB",EAX);
 		gen_code("SUB",ECX); // jesli dzielna ujemna to niech bedzie dodatnia
 		gen_code("STORE",ECX);
+		gen_code("LOAD",EDI);
+		gen_code("DEC");
+		gen_code("STORE",EDI);
+		gen_code("LOAD",EFX);
+		gen_code("INC");
+		gen_code("STORE",EFX);	
 		output[jmp_neg2].arg = gen_code("SUB",EAX);
 		long long m = gen_code("LOAD",EDX); // wykladnik potegi
 		gen_code("INC");
@@ -508,10 +520,22 @@ namespace math {
 
 		long long jmp_pos_out = gen_code("JZERO",-1);
 		gen_code("SUB",EAX);
+		gen_code("ADD",ECX);
+		long long zero = gen_code("JZERO",-1);
+		gen_code("SUB",EBX);
+
+		
+		output[zero].arg = gen_code("STORE",ECX);
+		
+ 		output[jmp_zero_2].arg = output[jmp_pos_out].arg = output_offset;
+ 		gen_code("LOAD",EFX);
+		long long aminus = gen_code("JZERO",-1);
+		gen_code("SUB",EAX);
 		gen_code("SUB",ECX);
 		gen_code("STORE",ECX);
 
-		output[jmp_zero_2].arg = output[jmp_pos_out].arg = gen_code("LOAD",ECX);
+		output[aminus].arg = output_offset;
+		 gen_code("LOAD",ECX);
 		gen_code("STOREI",ESP);
 	}
 }
