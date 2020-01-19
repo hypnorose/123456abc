@@ -891,13 +891,13 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);
 
 int main( int argc, char *argv[] ){ 
 	extern FILE *yyin;
-	extern FILE *yyout;
+	FILE *yyout2;
 	
 	if(argc>0){
 		yyin = fopen( argv[1], "r" );
 	}
 	if(argc>1){
-		yyout = fopen( argv[2], "w" );
+		yyout2 = fopen( argv[2], "w" );
 	}
 	setup();
 	yyparse();
@@ -905,9 +905,9 @@ int main( int argc, char *argv[] ){
 
 	for(long long i=0;i<output_offset;i++){
 		if(output[i].arg!=-1){
-			fprintf(yyout,"%s %lld\n",output[i].oper,output[i].arg);
+			fprintf(yyout2,"%s %lld\n",output[i].oper,output[i].arg);
 		}
-		else fprintf(yyout,"%s\n",output[i].oper);
+		else fprintf(yyout2,"%s\n",output[i].oper);
 	}
 
 }
