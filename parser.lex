@@ -8,7 +8,7 @@ num [-]?[0-9]+
 ID [_a-z]+
 %x COMMENT
 %%
-\[					{BEGIN(COMMENT); printf("start cmnt");}
+\[					{BEGIN(COMMENT); }
 <COMMENT>\]			{ BEGIN(INITIAL);}
 <COMMENT>\n 		{}
 <COMMENT>.			{}

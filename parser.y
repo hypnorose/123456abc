@@ -54,6 +54,8 @@ void yyerror(const char *s);
 		long long min;
 		long long max;
 		bool tab;
+		bool iterator;
+		bool init;
 		
 	};
 
@@ -81,13 +83,13 @@ void yyerror(const char *s);
 	}
 
 	long long gen_code(const char * code){
-		printf("%s\n",code);
+		//printf("%s\n",code);
 		output[output_offset].oper = strdup(code);
 		output[output_offset].arg = -1;
 		return output_offset++;
 	}
 	long long gen_code(const char * code,long long arg){
-		printf("%s %d\n",code,arg);
+		//printf("%s %d\n",code,arg);
 		output[output_offset].oper = strdup(code);
 		output[output_offset].arg = arg;
 		return output_offset++;
@@ -159,7 +161,7 @@ void yyerror(const char *s);
 
 	long long findVar(char * var_name){
 		for(long long i=0;i<data_offset;i++){
-			printf("%s\n",memory[i].name);
+			//printf("%s\n",memory[i].name);
 			if(strcmp(var_name,memory[i].name)==0)return memory[i].address;
 			
 		}
@@ -170,9 +172,9 @@ void yyerror(const char *s);
 	long long findVar(char * var_name,long long index){
 		cell m;
 		bool x = 0;
-		printf("\n%s\n%d\n",var_name,index);
+	//	printf("\n%s\n%d\n",var_name,index);
 		for(long long i=0;i<data_offset;i++){
-			printf("%s\n",memory[i].name);
+	//		printf("%s\n",memory[i].name);
 
 			if(strcmp(var_name,memory[i].name)==0){
 				m = memory[i];
@@ -188,7 +190,7 @@ void yyerror(const char *s);
 			yyerror("variable cant be accessed as array");
 		}
 		if(m.max < index || m.min > index){
-			printf("%d\n",m.max);
+	//		printf("%d\n",m.max);
 			yyerror("index ouf of range");
 		}
 		long long a = m.address + index - m.min;
@@ -196,6 +198,19 @@ void yyerror(const char *s);
 	
 	}
 	void assign(long long var_addr){
+		for(int i=0;i<data_offset;i++){
+			if(var_addr == memory[i].address){
+				if(memory[i].iterator==1){
+					yyerror("iterator can't be changed");
+				}
+				else{
+					memory[i].init = 1;
+					break;
+				}
+			}
+
+		}
+
 		gen_code("LOADI",ESP);
 		gen_code("STORE",var_addr);
 		pop();
@@ -214,6 +229,18 @@ void yyerror(const char *s);
 	}
 
 	void pushIdValue(long long addr  ){
+
+		for(int i=0;i<data_offset;i++){
+			if(addr == memory[i].address){
+				if(memory[i].init==0){
+					yyerror("variable uninitialized");
+				}
+				else{
+					break;
+				}
+			}
+
+		}
 		gen_code("LOAD",ESP);
 		gen_code("INC");
 		gen_code("STORE",ESP);
@@ -232,6 +259,12 @@ void yyerror(const char *s);
 	void read(long long v){
 		gen_code("GET");
 		gen_code("STORE",v);
+		for(int i=0;i<data_offset;i++){
+			if(memory[i].address==v){
+				memory[i].init = 1;
+				break;
+			}
+		}
 
 	}
 namespace math {
@@ -584,36 +617,52 @@ namespace logic {
 }
 
 	
-
+	bool isFree(char * temps){
+		for(int i=0;i<data_offset;i++){
+			if(strcmp(temps,memory[i].name)==0)return false;
+		}
+		return true;
+	}
 	
 	
 	long long make_variable(char * temps){
-		printf("%s",temps);
-		cout << next_address << endl;
+		//printf("%s",temps);
+	//	cout << next_address << endl;
+		if(!isFree(temps)){
+			yyerror("variable already declared");
+		}
 		memory[data_offset].name = strdup(temps);
 		memory[data_offset].address = next_address;
-		printf("asd\n\n%d\n",next_address);
+		memory[data_offset].iterator = 0;
+		memory[data_offset].init = 0;
+		//printf("asd\n\n%d\n",next_address);
 		memory[data_offset].tab = 0;
-		printf("%s %d\n",temps,data_offset);
-			printf("%d\n",next_address);
+		//printf("%s %d\n",temps,data_offset);
+		//	printf("%d\n",next_address);
 		next_address +=(long long)1;
 		return data_offset++ + DATA_START;
 	}
 	long long make_variable(char * temps,long long min, long long max){
 		long long size = max - min + 1;
-	
+		if(min>max){
+			yyerror("Negative array size");
+		}
+		if(!isFree(temps)){
+			yyerror("variable already declared");
+		}
 		memory[data_offset].name = strdup(temps);
-		
+		memory[data_offset].iterator = 0;
 		memory[data_offset].min = min;
 		memory[data_offset].max = max;
+		memory[data_offset].init = 0;
 		memory[data_offset].tab = 1;
 		long long x = data_offset;
 		memory[data_offset].address = next_address;
 		next_address += (long long) 1 + max - min;
-		printf("\nXXXX\n%d %d %d %d\n",memory[data_offset].address,max,min,memory[data_offset].address+max-min+1);
-		cout << endl << endl << next_address << endl << endl;
+		//printf("\nXXXX\n%d %d %d %d\n",memory[data_offset].address,max,min,memory[data_offset].address+max-min+1);
+	//	cout << endl << endl << next_address << endl << endl;
 		data_offset+=1;	
-		printf("%s %d\n",temps,x);
+		//printf("%s %d\n",temps,x);
 		return x + DATA_START;
 	}
 	
@@ -627,8 +676,8 @@ namespace logic {
 %}
 
 %%
-program: 		DECLARE declarations BGN commands END {printf("\nkoniecprogramu\n");}
-|		 		BGN commands END {printf("\nkoniecprogramu\n");}
+program: 		DECLARE declarations BGN commands END {printf("\nfinished\n");}
+|		 		BGN commands END {printf("\finished\n");}
 ;
 
 declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
@@ -636,8 +685,8 @@ declarations:   declarations ',' PIDENTIFIER					{make_variable($3);}
 |				PIDENTIFIER										{make_variable($1);}
 |				PIDENTIFIER '(' NUM ':' NUM ')'					{make_variable($1,$3,$5);}
 ;
-commands:		commands command {printf("tas");}
-|				command {printf("te");}
+commands:		commands command {}
+|				command {}
 ;
 command:		identifier ASSIGN expression ';'									
 				{
@@ -673,7 +722,7 @@ command:		identifier ASSIGN expression ';'
 				}
 				condition DO commands ENDWHILE		
 				{gen_code("JUMP",$1->jmp_prestart); 
-				printf("%d",$3->jmp_false);
+			//	printf("%d",$3->jmp_false);
 				output[$3->jmp_false].arg  = output_offset;}						
 
 | 				DO 
@@ -690,6 +739,8 @@ command:		identifier ASSIGN expression ';'
 				{
 					$1 = new_jmp_info();
 					make_variable($2);
+					memory[data_offset-1].iterator = 1;
+					memory[data_offset-1].init = 1;
 					gen_code("LOADI",ESP);
 					gen_code("STORE",next_address-1);
 					pop();
@@ -720,6 +771,8 @@ command:		identifier ASSIGN expression ';'
 				{
 						$1 = new_jmp_info();
 					make_variable($2);
+					memory[data_offset-1].init = 1;
+					memory[data_offset-1].iterator = 1;
 					gen_code("LOADI",ESP);
 					gen_code("STORE",next_address-1);
 					pop();
@@ -728,9 +781,9 @@ command:		identifier ASSIGN expression ';'
 
 				DOWNTO value DO
 				{
-					printf("Test");
+			//		printf("Test");
 					$1->jmp_prestart = 3;
-					printf("\n%d",$1->jmp_prestart);
+			//		printf("\n%d",$1->jmp_prestart);
 					$1->jmp_prestart = gen_code("LOADI",ESP);
 					gen_code("STORE",EBX);
 					gen_code("LOAD",findVar($2));
@@ -792,11 +845,33 @@ value:			NUM 							{	push_number(yylval.ival);
 													pushIdValue($1);					
 																					}
 ;
-identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
+identifier:		PIDENTIFIER 					{	$$ = findVar($1);
+													int j=0;
+													for(int i=0;i<data_offset;i++){
+														if(strcmp(memory[i].name,$1)==0){
+															j=i;
+															break;
+														}
+													}
+													if(memory[j].tab==1){
+														yyerror("bad array accessing");
+													}
+																				}
 |				PIDENTIFIER'('PIDENTIFIER')'	{	
 													numberToP0(findVar($1));
 													gen_code("STORE",EEX);
-													numberToP0(-memory[findVar($1)-DATA_START].min);
+													int j=0;
+													for(int i=0;i<data_offset;i++){
+														if(strcmp(memory[i].name,$1)==0){
+															j=i;
+															break;
+														}
+													}
+													if(memory[j].tab==0){
+														yyerror("variable is not an array");
+													}
+												//	numberToP0(-memory[findVar($1)-DATA_START].min);
+													numberToP0(-memory[j].min);
 
 													gen_code("ADD",findVar($3)); // teraz tu jest adres
 													gen_code("ADD",EEX);
@@ -812,7 +887,7 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);}
 ;
 %%
 
-int main( long long argc, char *argv[] ){ 
+int main( int argc, char *argv[] ){ 
 	extern FILE *yyin;
 	extern FILE *yyout;
 	
@@ -825,10 +900,6 @@ int main( long long argc, char *argv[] ){
 	setup();
 	yyparse();
 	gen_code("HALT");
-	printf("\n\n");
-	for(long long i=0;i<data_offset;i++){
-		cout << memory[i].name << " " << memory[i].address << endl;
-	}
 
 	for(long long i=0;i<output_offset;i++){
 		if(output[i].arg!=-1){
@@ -838,9 +909,11 @@ int main( long long argc, char *argv[] ){
 	}
 
 }
+extern int yylineno;
 void yyerror (const char *s) 
 {
-	printf ("Error: %s\n", s);
+	printf ("Error: %s::: %d\n", s,yylineno);
+	exit(0);
 
 }
  
