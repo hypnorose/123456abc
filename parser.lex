@@ -18,11 +18,11 @@ ID [_a-z]+
 						return NUM;						}
 
 
-"BEGIN"				{ 	return BGN;						}						
+"BEGIN"				{ 	return BGN;		 				}						
 DECLARE				{	return DECLARE;					}
 
 WRITE 				{	return WRITE;					}
-ASSIGN 				{	return ASSIGN;					}
+ASSIGN 				{	return ASSIGN;	 				}
 IF 					{	return IF;						}
 THEN 				{	return THEN;					}
 ELSE 				{	return ELSE;					}
@@ -52,6 +52,7 @@ LEQ 				{	return LEQ;						}
 GEQ 				{	return GEQ;						}
 [:;,\(\)]			{	return yytext[0];				}
 [ \t\n]+			{	;				}
+.|\n  				{ }
 
 
 

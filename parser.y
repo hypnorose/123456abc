@@ -157,7 +157,7 @@ void yyerror(const char *s);
 		
 		numberToP0(number);
 		// teraz w p0 jest number
-		gen_code("STOREI",ESP);
+		gen_code("STOREI",ESP); 
 
 	}
 
