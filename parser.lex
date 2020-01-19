@@ -2,15 +2,22 @@
 #include "parser.tab.h"
 #include <string.h>
 %}
-%option debug
 %option noyywrap
+%option yylineno
 num [-]?[0-9]+
 ID [_a-z]+
+%x COMMENT
 %%
+\[					{BEGIN(COMMENT); printf("start cmnt");}
+<COMMENT>\]			{ BEGIN(INITIAL);}
+<COMMENT>\n 		{}
+<COMMENT>.			{}
 {ID} 				{yylval.sval = strdup(yytext);
 						return PIDENTIFIER	;			}
 {num} 				{	yylval.ival = atoi(yytext);
 						return NUM;						}
+
+
 "BEGIN"				{ 	return BGN;						}						
 DECLARE				{	return DECLARE;					}
 
@@ -25,7 +32,7 @@ TO 					{	return TO;						}
 DOWNTO 				{	return DOWNTO;					}
 WHILE 				{	return WHILE;					}
 ENDWHILE 			{	return ENDWHILE;				}
-ENDDO 				{	return ENDDO;				}
+ENDDO 				{	return ENDDO;					}
 ENDFOR 				{	return ENDFOR;					}
 FROM 				{	return FROM;					}
 READ 				{	return READ;					}
@@ -43,9 +50,10 @@ LE 					{	return LE;						}
 GE 					{	return GE;						}
 LEQ 				{	return LEQ;						}
 GEQ 				{	return GEQ;						}
-
 [:;,\(\)]			{	return yytext[0];				}
-[ \t\n]+			{									}
+[ \t\n]+			{	;				}
+
+
 
 %%	
 
