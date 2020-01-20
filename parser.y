@@ -29,7 +29,7 @@
 #undef YYDEBUG
 #define YYDEBUG 1
 #define EAX 0  // rejestr na który działaja operacje sub add itp
-#define EBX 1
+#define EBX 1 // reszta rejestrów
 #define ECX 2
 #define EDX 3
 #define ESI 4
@@ -38,10 +38,10 @@
 #define MINUS_ONE 8
 #define EEX 7
 #define EFX 9
-#define ESP 11
-#define EBP 100
-#define STACK_OVERFLOW 1000
-#define DATA_START 1500
+#define ESP 11 // przechowuje adres ostatniego elementu na stosie
+#define EBP 100 // początek stosu
+
+#define DATA_START 1500 // początek przechowywania zmiennych
 using namespace std;
 extern int yylineno;
 extern FILE *yyout;
@@ -49,7 +49,7 @@ void yyerror(const char *s);
 	long long ebp = 100;
 	long long esp = ebp;
 		
-	struct cell {
+	struct cell { // przechowuje informacje o zmiennej / tablicy
 		 long long address;
 		char * name;
 		long long min;
@@ -60,12 +60,12 @@ void yyerror(const char *s);
 		int used;
 	};
 
-	struct cmd{
+	struct cmd{ // pojedyncza operacja, np LOAD 3
 		char * oper;
 		long long int arg;
 		char * comment;
 	};
-	struct jmp_info{
+	struct jmp_info{ // informacje na temat skoku
 		long long jmp_false;
 		long long jmp_true;
 		long long jmp_end;
@@ -78,18 +78,18 @@ void yyerror(const char *s);
 	long long output_offset=0;
 	long long data_offset = 0;
 	long long next_address = DATA_START;
-	jmp_info *  new_jmp_info(){
+	jmp_info *  new_jmp_info(){ // tworzenie nowej informacji o skoku
 		jmp_info * j =  (jmp_info *)malloc(sizeof(jmp_info));
 		return j;
 	}
 
-	long long gen_code(const char * code){
+	long long gen_code(const char * code){ // generowanie kodu DEC INC
 		//printf("%s\n",code);
 		output[output_offset].oper = strdup(code);
 		output[output_offset].arg = -1;
 		return output_offset++;
 	}
-	long long gen_code(const char * code,long long arg){
+	long long gen_code(const char * code,long long arg){ // generowanie reszty słów np STORE 9
 		//printf("%s %d\n",code,arg);
 		output[output_offset].oper = strdup(code);
 		output[output_offset].arg = arg;
@@ -97,7 +97,7 @@ void yyerror(const char *s);
 	}
 
 
-	void pop(){
+	void pop(){ // zdejmowanie wartości ze stosu
 		gen_code("LOAD",ESP);
 		gen_code("DEC");
 		gen_code("STORE",ESP);
@@ -105,8 +105,8 @@ void yyerror(const char *s);
 
 
 
-	void numberToP0(long long number){
-		//printf("%lld",number);
+	void numberToP0(long long number){ // wrzucenie stałej do P0 -- następuje ona przez najoptymalniejszą kombinację
+		//printf("%lld",number); // mnożeń przez 2 i inkrementacji
 		gen_code("SUB",EAX);
 		if(number==0)
 		{
@@ -149,7 +149,7 @@ void yyerror(const char *s);
 		}
 			//gen_code("PUT");
 	}
-	void push_number(long long number){
+	void push_number(long long number){ //wrzucenie liczby na stos
 		gen_code("LOAD",ESP);
 		gen_code("INC");
 		gen_code("STORE",ESP);
@@ -162,7 +162,7 @@ void yyerror(const char *s);
 	}
 
 
-	long long findVar(char * var_name){
+	long long findVar(char * var_name){ // szukanie adresu zmiennej 
 		for(long long i=0;i<data_offset;i++){
 			//printf("%s\n",memory[i].name);
 			if(strcmp(var_name,memory[i].name)==0)return memory[i].address;
@@ -172,7 +172,7 @@ void yyerror(const char *s);
 		yyerror("Variable not found");
 		return -1;
 	}
-	long long findVar(char * var_name,long long index){
+	long long findVar(char * var_name,long long index){ // szukanie adresu elementu w tablicy
 		cell m;
 		bool x = 0;
 	//	printf("\n%s\n%d\n",var_name,index);
@@ -200,7 +200,7 @@ void yyerror(const char *s);
 		return a;
 	
 	}
-	void assign(long long var_addr){
+	void assign(long long var_addr){ // przypisanie wartości do zmiennej lub tablicy o stałym indexie
 		for(int i=0;i<data_offset;i++){
 			if(var_addr == memory[i].address){
 				if(memory[i].iterator==1){
@@ -219,23 +219,23 @@ void yyerror(const char *s);
 		pop();
 	}
 	
-	void setup(){
+	void setup(){ // inicjalizacja
 		gen_code("SUB",EAX);
 		gen_code("INC");
 		gen_code("STORE",ONE);
-		numberToP0(EBP);
-		gen_code("STORE",ESP);
-		gen_code("SUB",EAX);
+		numberToP0(EBP); 
+		gen_code("STORE",ESP); // linijka wyżej wrzuca EBP=100 na EAX, po czym zapisuje go pod ESP=11.
+		gen_code("SUB",EAX); 
 		gen_code("DEC");
 		gen_code("STORE",MINUS_ONE);
 
 	}
 
-	void pushIdValue(long long addr  ){
+	void pushIdValue(long long addr  ){ // wrzucenie na stos wartości pod adresem
 
 		for(int i=0;i<data_offset;i++){
 			if(addr == memory[i].address){
-					memory[i].used = yylineno;
+					memory[i].used = yylineno; // do obsługi błędów inicjalizacji, zapisujemy linijke na której była użyta
 			}
 
 		}
@@ -249,12 +249,12 @@ void yyerror(const char *s);
 
 	}
 	void write(){
-		gen_code("LOADI",ESP);
+		gen_code("LOADI",ESP); // wypisywanie na ekran ze stosu
 		gen_code("PUT");
 		pop();
 
 	}
-	void read(long long v){
+	void read(long long v){ // zczytywanie do adresu v 
 		gen_code("GET");
 		gen_code("STORE",v);
 		for(int i=0;i<data_offset;i++){
@@ -265,7 +265,7 @@ void yyerror(const char *s);
 		}
 
 	}
-namespace math {
+namespace math { // wszystkie operacje zdejmują 2 liczby ze stosu i wrzucają 1
 	void plus(){
 		gen_code("LOADI",ESP);
 		gen_code("STORE",EBX);
@@ -282,23 +282,25 @@ namespace math {
 		gen_code("SUB",EBX);
 		gen_code("STOREI",ESP);
 	}
-	void times(){
+	void times(){ // mnożenie to jest mocarz.
+
+
 		gen_code("SUB",EAX);
 		gen_code("STORE",ESI); // zerujemy esi, tu będzie wynik na końcu
 		gen_code("STORE",EDI); 
 		gen_code("STORE",EDX);
 		gen_code("LOADI",ESP);
-		gen_code("STORE",EBX);
+		gen_code("STORE",EBX); // EBX - drugi czynnik
 		long long jmp_pos = gen_code("JPOS",-1);
 		gen_code("SUB",EAX);
 		gen_code("INC");
 		gen_code("STORE",EDI);
 		gen_code("SUB",EAX);
-		gen_code("SUB",EBX);
+		gen_code("SUB",EBX); // na minus jeśli EBX ujemne
 		output[jmp_pos].arg = 1 + gen_code("STORE",EBX); 
-		pop();
+		pop();				// zdejmujemy ze stosu tylko raz. wynik nadpisuje pierwszy czynnik
 		gen_code("LOADI",ESP);
-		gen_code("STORE",ECX);
+		gen_code("STORE",ECX); // ECX - pierwszy czynnik
 		long long again =  gen_code("LOAD",EDX);
 		gen_code("INC");
 		gen_code("STORE",EDX);
@@ -310,9 +312,10 @@ namespace math {
 		gen_code("JNEG",again); 
 
 		// w tym momencie znaleźliśmy potęgę dwójki większą od drugiego czynnika
-		// jest ona w EDX, w ECX pierwszy czynnik, w EBX drugi
+		//  w ECX pierwszy czynnik, w EBX drugi
+		// w EDX wykładnik, w EEX wartosc
 		long long loop = gen_code("LOAD",EBX);
-		gen_code("SUB",EEX);
+		gen_code("SUB",EEX); // sprawdzamy czy to co jest w EEX miesci sie w EBX
 		long long jumpneg = gen_code("JNEG",-1);
 		// tutaj program wchodzi jeśli jest nieujemne, tzn da sie odjac potege dwojki
 		gen_code("LOAD",ECX);
@@ -348,6 +351,26 @@ namespace math {
 		output[finish].arg=gen_code("STOREI",ESP);
 
 
+		/*
+		Przykład jak to działa
+		powiedzmy że mamy 5 * 6
+
+		program znajduje potęgę 2 większą od 6 => 8
+		wykładnik = 3
+		sprawdzamy czy 6-8 < 0, oczywiście nie więc dzielimy 8 na 2 => 4
+		a od wykładnika odejmujemy 1
+		i sprawdzamy 2^2 = 4
+		6 - 4 >= 0, więc do wyniku dodajemy 4 * 5(pierwszy czynnik), od 6 odejmujemy 4.
+		wykładnik-=1 => 1
+		wartosc 4 /= 2 => 2
+		drugi czynnik 6-=4 =? 2
+		2 - 2 >= 0, więc do wyniku dodajemy 2 * 5, od 2 odejmujemy 2.
+		W wyniku czyli bodajże ESI mamy teraz 4*5 + 2*5
+
+		Tl;dr: 
+		Odejmujemy od drugiego czynnika kolejne potęgi dwójki, jeśli da się
+		odjąć to dodajemy tą potęgę razy pierwszy czynnik do wyniku
+		*/
 	}
 	void div(){
 		gen_code("SUB",EAX);
@@ -387,11 +410,8 @@ namespace math {
 		gen_code("STORE",EEX); // wartosc potegi * baza
 		gen_code("SUB",ECX);
 		gen_code("JNEG",m); 
-
-		//db
-		gen_code("LOAD",EEX);
-		gen_code("LOAD",EDX);
-		//db
+	
+		
 		long long again = gen_code("LOAD",ECX);
 		gen_code("SUB",EEX);
 		long long jmp_lower = gen_code("JNEG",-1); // skok jeśli EEX > ECX
@@ -433,7 +453,16 @@ namespace math {
 		output[zero].arg = output[jmp_zero_2].arg = output[jmp_pos_out].arg = gen_code("LOAD",ESI);
 		gen_code("STOREI",ESP);
 
-
+		/*
+			Tu jest dużo do tłumaczenia. Zasadniczo kod tutaj to jest syf,
+			i musiałaaam bardzo kombinować żeby uwzględnić niżej operację modulo, a nie klasyczną resztę z dzielenia
+			(o ile mnie wiedza matematyczna nie myli).
+			Zasadniczo patent jest podobny jak w mnożeniu:
+			Jeśli da się od dzielnej odjąć potęgę dwójki razy dzielnik to dodaję wartość tej potęgi dwójki do wyniku.
+			No, w sumie tyle. Modulo jest podobne, na koniec coś zostanie i to wypisujemy w modulo.
+			Te przypadki z operacji modulo która sprawiała problemy zwyczajnie wyifowałem, czyli np
+			33 % -7 daje niżej najpierw wynik 5, potem dopiero odejmuję od tego 7.
+		*/
 	}
 
 
@@ -524,7 +553,7 @@ namespace math {
 		
  		output[jmp_zero_2].arg = output[jmp_pos_out].arg = output_offset;
  		gen_code("LOAD",EFX);
-		long long aminus = gen_code("JZERO",-1);
+		long long aminus = gen_code("JZERO",-1);																																																																	//ale mi sie nie chce
 		gen_code("SUB",EAX);
 		gen_code("SUB",ECX);
 		gen_code("STORE",ECX);
@@ -535,7 +564,10 @@ namespace math {
 	}
 }
 
-namespace logic {
+namespace logic { // podobnie jak w operacjach - zdejmujemy rzeczy ze stosu, tym razem nic nie dodając.
+	// tutaj kod jest chyba dosyc self explanatory albo inne trudne angielskie słówko
+	// w sensie no widać
+
 	void eq(jmp_info * j){
 		gen_code("LOADI",ESP);
 		gen_code("STORE",ECX);
@@ -638,7 +670,7 @@ namespace logic {
 }
 
 	
-	bool isFree(char * temps){
+	bool isFree(char * temps){ // czy jest zadeklarowana taka zmienna
 		for(int i=0;i<data_offset;i++){
 			if(strcmp(temps,memory[i].name)==0)return false;
 		}
@@ -646,7 +678,7 @@ namespace logic {
 	}
 	
 	
-	long long make_variable(char * temps){
+	long long make_variable(char * temps){ // tworzenie zmiennej
 		//printf("%s",temps);
 	//	cout << next_address << endl;
 		if(!isFree(temps)){
@@ -664,7 +696,7 @@ namespace logic {
 		next_address +=(long long)1;
 		return data_offset++ + DATA_START;
 	}
-	long long make_variable(char * temps,long long min, long long max){
+	long long make_variable(char * temps,long long min, long long max){ // tworzenie tablicy
 		long long size = max - min + 1;
 		if(min>max){
 			yyerror("Negative array size");
@@ -690,9 +722,9 @@ namespace logic {
 	}
 	
 
-	using namespace std;
-	extern int yylex();
-	extern int yyparse();
+	using namespace std; // chyba z pięć razy to tutaj piszę tą linijkę podobnie jak te niżej
+	extern int yylex();  // ale wolę nie ryzykować, pod koniec pisania nie usuwałam nawet komentarzy
+	extern int yyparse();// w obawie że to runie
 	extern FILE *yyin;
 
 	
@@ -713,40 +745,41 @@ commands:		commands command {}
 ;
 command:		identifier ASSIGN expression ';'									
 				{
-					if($1 == -1){
-						gen_code("LOADI",ESP);
-						gen_code("STORE",EBX); // wartosc
+					if($1 == -1){ // identifier zwraca -1 jeśli mamy doczynienia z elementem tablicy indeksowanym zmienną
+						gen_code("LOADI",ESP); // pod EBX jest wartosc ktora wrzucamy
+						gen_code("STORE",EBX); // wartosc // pod ECX adres
 						pop();
 						gen_code("LOADI",ESP);
-						gen_code("STORE",ECX); // indeks docelowy
+						gen_code("STORE",ECX); // o tutaj przypisujemy ten adres do ECX
 						gen_code("LOAD",EBX);
 						gen_code("STOREI",ECX);
 						pop();
 					}
 					else
 					assign($1);			}
-|				IF condition THEN commands											
-				{$2->jmp_end= gen_code("JUMP",-1);
-				output[$2->jmp_end].comment = strdup("JUMP TO IF END");
+|				IF condition THEN commands			// od tego momentu radzę wziąć ibuprom							
+				{$2->jmp_end= gen_code("JUMP",-1);  // bo skoki warunkowe są bardzo migrenogenne
+				
 				} 
 				ELSE 
-				{output[$2->jmp_false].arg = output_offset;}
-				commands ENDIF
+				{output[$2->jmp_false].arg = output_offset;} // tu już nie będe za wiele tłumaczył
+				commands ENDIF 						// konstrukcja jak linijkę wyżej oznacza,
+				// że jeśli warunek będzie niespełniony, to ma skoczyć do tego miejsca 
 				{output[$2->jmp_end].arg=output_offset;
-				output[output_offset].comment = strdup("IF END");
+				
 				}
 
-|				IF  condition THEN commands ENDIF 							
+|				IF  condition THEN commands ENDIF 		 // TUTAJ JEST PROSTSZA wersja tego co u góry			
 				{output[$2->jmp_false].arg  = output_offset;}
-|				WHILE 
+|				WHILE  								// do tokenu while przypisuje wartosci o skoku
 				{$1 = new_jmp_info();
 				$1->jmp_prestart = output_offset;;
-				output[output_offset].comment = strdup("WHILESTART");
+				
 				}
 				condition DO commands ENDWHILE		
-				{gen_code("JUMP",$1->jmp_prestart); 
+				{gen_code("JUMP",$1->jmp_prestart); // domyślnie skaczemu do początku
 			//	printf("%d",$3->jmp_false);
-				output[$3->jmp_false].arg  = output_offset;}						
+				output[$3->jmp_false].arg  = output_offset;}			// no chyba że nie, to skaczemu tu i lecimy dalej
 
 | 				DO 
 				{$1 = new_jmp_info();
@@ -755,14 +788,14 @@ command:		identifier ASSIGN expression ';'
 				commands WHILE condition ENDDO
 				{
 					gen_code("JUMP",$1->jmp_prestart); 
-					output[$5->jmp_false].arg =output_offset;
+					output[$5->jmp_false].arg =output_offset; // w sumie podobnie ale warunek dopiero sprawdzamy pod koniec
 				}
 
 |				FOR PIDENTIFIER FROM value
 				{
-					$1 = new_jmp_info();
-					make_variable($2);
-					memory[data_offset-1].iterator = 1;
+					$1 = new_jmp_info(); // do FOR dodajemy info o skokach
+					make_variable($2); // tworzymy iteratora
+					memory[data_offset-1].iterator = 1; // krzyczymy jeśli iterator będzie zmieniony
 					memory[data_offset-1].init = 1;
 					gen_code("LOADI",ESP);
 					gen_code("STORE",next_address-1);
@@ -772,10 +805,10 @@ command:		identifier ASSIGN expression ';'
 
 				TO value DO
 				{
-
+					// tutaj już są obroty pętli
 					$1->jmp_prestart = gen_code("LOADI",ESP);
 					gen_code("SUB",findVar($2));
-					$1->jmp_false =  gen_code("JNEG",-1);
+					$1->jmp_false =  gen_code("JNEG",-1); // warunek
 				}
 			
 				commands ENDFOR
@@ -830,16 +863,16 @@ command:		identifier ASSIGN expression ';'
 |				READ identifier ';' {read($2);}
 |				WRITE value  ';' {write();}
 ;
-expression:		value 							{}
-|				value PLUS value 				{ math::plus();}
-|				value MINUS value 				{ math::minus();}
+expression:		value 							{} // UWAGA, następne 5 linijek w kodzie jest przejrzyste
+|				value PLUS value 				{ math::plus();} 
+|				value MINUS value 				{ math::minus();} 
 |				value TIMES value 				{ math::times();}
 |				value DIV value 				{ math::div();}
 |				value MOD value 				{ math::modulo();}
-
+													// dobra wystarczy
 ;
-condition:		value EQ value 					{jmp_info* j = new_jmp_info();
-													logic::eq(j);
+condition:		value EQ value 					{jmp_info* j = new_jmp_info(); 			// tworzymy info o skoku w warunku
+													logic::eq(j);						// zasadniczo to tylko dla if to działa, bo for while mają już własny sposó” na przechowanie
 												$$ = j;								}
 |				value NEQ value 				{jmp_info* j = new_jmp_info();
 												logic::neq(j);
@@ -857,20 +890,20 @@ condition:		value EQ value 					{jmp_info* j = new_jmp_info();
 												logic::geq(j);
 												$$ = j;								}
 ;
-value:			NUM 							{	push_number(yylval.ival);	
+value:			NUM 							{	push_number(yylval.ival);	// wrzucamy liczbe na stos																																																	// na stos, rzuciliśmy, swój życia los na stos na stos
 												}
-|				identifier						{	if($1 == -1){
-														gen_code("LOADI",ESP);
-														gen_code("LOADI",EAX);
-														gen_code("STOREI",ESP);
+|				identifier						{	if($1 == -1){ // -1 jeśli to np. tab(a), indeksowanie zmienną
+														gen_code("LOADI",ESP); // to jest mocne - wczytujemy adres spod ESP, czyli wierzchołek stosu
+														gen_code("LOADI",EAX); // a potem wczytujemy to, co jest pod tym adresem.
+														gen_code("STOREI",ESP);// 
 													}
 													else
 													pushIdValue($1);					
 																					}
 ;
-identifier:		PIDENTIFIER 					{	$$ = findVar($1);
+identifier:		PIDENTIFIER 					{	$$ = findVar($1); // szukamy sobie liczby
 													int j=0;
-													for(int i=0;i<data_offset;i++){
+													for(int i=0;i<data_offset;i++){ // do spradzania błedów
 														if(strcmp(memory[i].name,$1)==0){
 															j=i;
 															break;
@@ -880,8 +913,9 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);
 														yyerror("bad array accessing");
 													}
 																				}
-|				PIDENTIFIER'('PIDENTIFIER')'	{	
-													numberToP0(findVar($1));
+|				PIDENTIFIER'('PIDENTIFIER')'	{	// jest i nasz nicwoń
+													// 
+													numberToP0(findVar($1)); 
 													gen_code("STORE",EEX);
 													int j=0;
 													for(int i=0;i<data_offset;i++){
@@ -894,10 +928,12 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);
 														yyerror("variable is not an array");
 													}
 												//	numberToP0(-memory[findVar($1)-DATA_START].min);
-													numberToP0(-memory[j].min);
+													numberToP0(-memory[j].min); // dodajemy -minimum
 
 													gen_code("ADD",findVar($3)); // teraz tu jest adres
-													gen_code("ADD",EEX);
+													gen_code("ADD",EEX);		// dodajemy o ile przesunąć
+													// na koniec adres czegoś w tablicy to
+													// ADRES_BAZOWY - MIN + INDEX
 													gen_code("STORE",EDX);
 													gen_code("LOAD",ESP);
 													gen_code("INC");
@@ -906,10 +942,10 @@ identifier:		PIDENTIFIER 					{	$$ = findVar($1);
 													gen_code("STOREI",ESP);
 													$$=-1;
 												}
-|				PIDENTIFIER'('NUM')'			{	$$ = findVar($1,$3);}
+|				PIDENTIFIER'('NUM')'			{	$$ = findVar($1,$3);} // pobranie wartosci z tablicy o stałym indexie
 ;
 %%
-
+																																																																																							//ide spać
 int main( int argc, char *argv[] ){ 
 	extern FILE *yyin;
 	FILE *yyout2;
