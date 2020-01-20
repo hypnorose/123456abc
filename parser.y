@@ -43,7 +43,7 @@
 #define STACK_OVERFLOW 1000
 #define DATA_START 1500
 using namespace std;
-
+extern int yylineno;
 extern FILE *yyout;
 void yyerror(const char *s);
 	long long ebp = 100;
@@ -57,7 +57,7 @@ void yyerror(const char *s);
 		bool tab;
 		bool iterator;
 		bool init;
-		
+		int used;
 	};
 
 	struct cmd{
@@ -235,12 +235,7 @@ void yyerror(const char *s);
 
 		for(int i=0;i<data_offset;i++){
 			if(addr == memory[i].address){
-				if(memory[i].init==0){
-					yyerror("variable uninitialized");
-				}
-				else{
-					break;
-				}
+					memory[i].used = yylineno;
 			}
 
 		}
@@ -661,6 +656,7 @@ namespace logic {
 		memory[data_offset].address = next_address;
 		memory[data_offset].iterator = 0;
 		memory[data_offset].init = 0;
+		memory[data_offset].used = -1;
 		//printf("asd\n\n%d\n",next_address);
 		memory[data_offset].tab = 0;
 		//printf("%s %d\n",temps,data_offset);
@@ -682,6 +678,7 @@ namespace logic {
 		memory[data_offset].max = max;
 		memory[data_offset].init = 0;
 		memory[data_offset].tab = 1;
+		memory[data_offset].used = -1;
 		long long x = data_offset;
 		memory[data_offset].address = next_address;
 		next_address += (long long) 1 + max - min;
@@ -926,7 +923,13 @@ int main( int argc, char *argv[] ){
 	setup();
 	yyparse();
 	gen_code("HALT");
+	for(int i=0;i<data_offset;i++){
+		if(memory[i].init == 0 && memory[i].used != -1){
+				printf ("Error: variable uninitialized::: Line: %d\n", memory[i].used);
+				exit(0);
 
+		}
+	}
 	for(long long i=0;i<output_offset;i++){
 		if(output[i].arg!=-1){
 			fprintf(yyout2,"%s %lld\n",output[i].oper,output[i].arg);
@@ -935,7 +938,7 @@ int main( int argc, char *argv[] ){
 	}
 
 }
-extern int yylineno;
+
 void yyerror (const char *s) 
 {
 	printf ("Error: %s::: Line: %d\n", s,yylineno);
